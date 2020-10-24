@@ -4,13 +4,6 @@ import torch
 from core.config import BaseConfig
 from core.env import _images_to_observation
 
-CONTROL_SUITE_ENVS = ['cartpole-balance', 'cartpole-swingup', 'reacher-easy',
-                      'finger-spin', 'cheetah-run', 'ball_in_cup-catch', 'walker-walk',
-                      'reacher-hard', 'walker-run', 'humanoid-stand',
-                      'humanoid-walk', 'fish-swim', 'acrobot-swingup']
-CONTROL_SUITE_ACTION_REPEATS = {'cartpole': 8, 'reacher': 4, 'finger': 2, 'cheetah': 4, 'ball_in_cup': 6, 'walker': 2,
-                                'humanoid': 2, 'fish': 2, 'acrobot': 4}
-
 
 class ControlSuiteEnv:
     def __init__(self, env, symbolic, seed, max_episode_length, action_repeat, bit_depth):
