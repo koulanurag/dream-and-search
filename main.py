@@ -11,6 +11,7 @@ from core.env import EnvBatcher
 from core.train import train
 from core.test import test
 from core.utils import init_logger
+from pathlib import Path
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Performing Search for Control with Dreamer')
@@ -21,9 +22,9 @@ if __name__ == '__main__':
     parser.add_argument('--env', type=str, default='cartpole-balance', help='Gym/Control Suite environment')
     parser.add_argument('--case', type=str, default='dm_control', choices=['dm_control', 'box2d', 'classic_control'],
                         help="It's used for switching between different domains(default: %(default)s)")
-    parser.add_argument('--results-dir', default=os.path.join(os.getcwd(), 'results'),
+    parser.add_argument('--results-dir', type=Path, default=os.path.join(os.getcwd(), 'results'),
                         help="Directory Path to store results (default: %(default)s)")
-    parser.add_argument('--wandb-dir', default=os.path.join(os.getcwd(), 'wandb'),
+    parser.add_argument('--wandb-dir', type=Path, default=os.path.join(os.getcwd(), 'wandb'),
                         help="Directory Path to store results (default: %(default)s)")
     parser.add_argument('--opr', required=True, choices=['train', 'test'], help='operation to be performed')
     parser.add_argument('--symbolic-env', action='store_true', help='Symbolic features')

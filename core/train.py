@@ -1,7 +1,6 @@
 import logging
 
 import torch
-import wandb
 from torch.distributions import Normal, kl_divergence
 from torch.nn import functional as F
 from torch.optim import Adam
@@ -298,6 +297,7 @@ def train(config: BaseConfig, writer: SummaryWriter):
                 torch.save(D, config.experiance_path)  # Warning: will fail with MemoryError with large memory sizes
 
             if config.args.use_wandb:
+                import wandb
                 wandb.save(config.checkpoint_path)
 
         # check if max. env steps reached.
