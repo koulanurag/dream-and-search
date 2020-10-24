@@ -14,4 +14,3 @@ pip install -r requirements.txt
 
 ## Reference:
 1. https://github.com/yusukeurakami/dreamer-pytorch
-2. 
