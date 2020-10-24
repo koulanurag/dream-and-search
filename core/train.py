@@ -266,6 +266,7 @@ def train(config: BaseConfig, writer: SummaryWriter):
                     if done:
                         break
 
+                episode_reward += step_reward
                 # add to memory
                 D.append(observation, step_action, step_reward, done)
                 observation = next_observation
