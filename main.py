@@ -14,12 +14,12 @@ from core.utils import init_logger
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Performing Search for Control with Dreamer')
-    parser.add_argument('--search-mode', type=str, default='no-search', help='planet or dreamer')
+    parser.add_argument('--search-mode', type=str, default='no-search', help='Search Mode to be used for planning',
+                        choices=['no-search', 'rollout', 'mcts', 'mpc'])
     parser.add_argument('--seed', type=int, default=1, metavar='S', help='Random seed')
     parser.add_argument('--no-cuda', action='store_true', help='Disable CUDA')
     parser.add_argument('--env', type=str, default='cartpole-balance', help='Gym/Control Suite environment')
-    parser.add_argument('--case', type=str, default='dm_control',
-                        choices=['dm_control', 'box2d', 'classic_control'],
+    parser.add_argument('--case', type=str, default='dm_control', choices=['dm_control', 'box2d', 'classic_control'],
                         help="It's used for switching between different domains(default: %(default)s)")
     parser.add_argument('--results_dir', default=os.path.join(os.getcwd(), 'results'),
                         help="Directory Path to store results (default: %(default)s)")
@@ -28,23 +28,21 @@ if __name__ == '__main__':
     parser.add_argument('--opr', required=True, choices=['train', 'test'], help='operation to be performed')
     parser.add_argument('--symbolic-env', action='store_true', help='Symbolic features')
     parser.add_argument('--max-episode-length', type=int, default=1000, metavar='T', help='Max episode length')
-    parser.add_argument('--experience-size', type=int, default=1000000, metavar='D',
-                        help='Experience replay size')  # Original implementation has an unlimited buffer size, but 1 million is the max experience collected anyway
-    parser.add_argument('--embedding-size', type=int, default=1024, metavar='E',
-                        help='Observation embedding size')  # Note that the default encoder for visual observations outputs a 1024D vector; for other embedding sizes an additional fully-connected layer is used
+    # Original implementation has an unlimited buffer size, but 1 million is the max experience collected anyway
+    parser.add_argument('--experience-size', type=int, default=1000000, metavar='D', help='Experience replay size')
+    # Note that the default encoder for visual observations outputs a 1024D vector;
+    # for other embedding sizes an additional fully-connected layer is used
+    parser.add_argument('--embedding-size', type=int, default=1024, metavar='E', help='Observation embedding size')
     parser.add_argument('--hidden-size', type=int, default=200, metavar='H', help='Hidden size')
     parser.add_argument('--belief-size', type=int, default=200, metavar='H', help='Belief/hidden size')
     parser.add_argument('--state-size', type=int, default=30, metavar='Z', help='State/latent size')
     parser.add_argument('--action-repeat', type=int, default=2, metavar='R', help='Action repeat')
     parser.add_argument('--action-noise', type=float, default=0.3, metavar='ε', help='Action noise')
-    parser.add_argument('--seed-episodes', type=int, default=5, metavar='S', help='Seed episodes')
     parser.add_argument('--collect-interval', type=int, default=100, metavar='C', help='Collect interval')
     parser.add_argument('--batch-size', type=int, default=50, metavar='B', help='Batch size')
     parser.add_argument('--chunk-size', type=int, default=50, metavar='L', help='Chunk size')
     parser.add_argument('--worldmodel-LogProbLoss', action='store_true',
                         help='use LogProb loss for observation_model and reward_model training')
-    parser.add_argument('--overshooting-kl-beta', type=float, default=0, metavar='β>1',
-                        help='Latent overshooting KL weight for t > 1 (0 to disable)')
     parser.add_argument('--global-kl-beta', type=float, default=0, metavar='βg', help='Global KL weight (0 to disable)')
     parser.add_argument('--free-nats', type=float, default=3.0, metavar='F', help='Free nats')
     parser.add_argument('--bit-depth', type=int, default=5, metavar='B', help='Image bit depth (quantisation)')
@@ -52,9 +50,11 @@ if __name__ == '__main__':
     parser.add_argument('--actor_lr', type=float, default=8e-5, metavar='α', help='Learning rate')
     parser.add_argument('--value_lr', type=float, default=8e-5, metavar='α', help='Learning rate')
     parser.add_argument('--learning-rate-schedule', type=int, default=0, metavar='αS',
-                        help='Linear learning rate schedule (optimisation steps from 0 to final learning rate; 0 to disable)')
+                        help='Linear learning rate schedule (optimisation steps from 0 to final learning rate;'
+                             ' 0 to disable)')
     parser.add_argument('--adam-epsilon', type=float, default=1e-7, metavar='ε', help='Adam optimizer epsilon value')
-    # Note that original has a linear learning rate decay, but it seems unlikely that this makes a significant difference
+    # Note that original has a linear learning rate decay,
+    # but it seems unlikely that this makes a significant difference
     parser.add_argument('--grad-clip-norm', type=float, default=100.0, metavar='C', help='Gradient clipping norm')
     parser.add_argument('--planning-horizon', type=int, default=15, metavar='H', help='Planning horizon distance')
     parser.add_argument('--discount', type=float, default=0.99, metavar='H', help='Planning horizon distance')
