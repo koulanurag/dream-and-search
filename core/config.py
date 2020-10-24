@@ -19,6 +19,13 @@ class BaseConfig(object):
                               action_size=self.action_size,
                               symbolic=self.args.symbolic_env)
 
+    def get_hparams(self):
+        hparams = {k: v for k, v in vars(self.args).items() if v is not None}
+        for k, v in self.__dict__.items():
+            if 'path' not in k and 'args' not in k and (v is not None):
+                hparams[k] = v
+        return hparams
+
     def set_config(self, args):
         self.args = args
 
