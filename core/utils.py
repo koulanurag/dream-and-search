@@ -29,7 +29,7 @@ def update_belief(transition_model, encoder, belief, posterior_state, action, ob
 def select_action(config, env, planner, belief, posterior_state, random=False, explore=False):
     if random:  # collect data for seeding
         action = env.sample_random_action()
-        action = action.unsqueeze(0).float().to(config.device)
+        action = action.unsqueeze(0).float().to(config.args.device)
     else:
         if config.args.search_mode == "no-search":
             action = planner.get_action(belief, posterior_state, det=not (explore))
