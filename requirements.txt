@@ -1,6 +1,5 @@
 dm-control==0.0.322773188
 gym==0.17.3
 opencv-python==4.4.0.44
-scipy==1.5.3
 tensorboard==2.3.0
 wandb==0.10.7
