@@ -1,8 +1,6 @@
 import os
-from typing import List, Set
 
 from core.model import DreamerNetwork
-from collections import defaultdict
 
 
 class BaseConfig(object):

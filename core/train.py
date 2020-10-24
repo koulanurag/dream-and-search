@@ -213,13 +213,15 @@ def train(config: BaseConfig, writer: SummaryWriter):
     else:
         raise NotImplementedError
 
+    # training constraints
+    free_nats = torch.full((1,), config.args.free_nats, device=config.args.device)
+    global_prior = Normal(torch.zeros_like(model.init_state()).to(config.args.device),
+                          torch.ones_like(model.init_state()).to(config.args.device))
+
     # training trackers
     done = True
     total_env_steps = 0
     episodes = 0
-    free_nats = torch.full((1,), config.args.free_nats, device=config.args.device)
-    global_prior = Normal(torch.zeros_like(model.init_state()).to(config.args.device),
-                          torch.ones_like(model.init_state()).to(config.args.device))
     best_test_score = {'score': {'with_search': float('-inf'), 'no_search': float('-inf')}}
 
     while True:
