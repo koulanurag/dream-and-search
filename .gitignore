@@ -1,0 +1,15 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+
+# Pycharm
+.idea/*
+
+# Visual Studio
+.vscode/*
+
+# ignore wandb logs
+wandb/*
+

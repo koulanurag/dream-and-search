@@ -1,0 +1,13 @@
+.cache
+
+# ignore wandb logs
+wandb/*
+
+# results dir
+results/*
+
+# Pycharm
+.idea/*
+
+# Visual Studio
+.vscode/*
