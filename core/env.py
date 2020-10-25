@@ -22,7 +22,8 @@ def preprocess_observation_(observation, bit_depth):
 
 # Postprocess an observation for storage (from float32 numpy array [-0.5, 0.5] to uint8 numpy array [0, 255])
 def postprocess_observation(observation, bit_depth):
-    return np.clip(np.floor((observation + 0.5) * 2 ** bit_depth) * 2 ** (8 - bit_depth), 0, 2 ** 8 - 1).astype(np.uint8)
+    _obs = np.clip(np.floor((observation + 0.5) * 2 ** bit_depth) * 2 ** (8 - bit_depth), 0, 2 ** 8 - 1)
+    return _obs.astype(np.uint8)
 
 
 def _images_to_observation(images, bit_depth):
@@ -107,9 +108,11 @@ class EnvBatcher():
         # Env should remain terminated if previously terminated
         dones = [d or prev_d for d, prev_d in zip(dones, self.dones)]
         self.dones = dones
-        observations, rewards, dones = torch.cat(observations), torch.tensor(rewards,
-                                                                             dtype=torch.float32), torch.tensor(dones,
-                                                                                                                dtype=torch.uint8)
+
+        observations = torch.cat(observations)
+        rewards = torch.tensor(rewards, dtype=torch.float32)
+        dones = torch.tensor(dones, dtype=torch.uint8)
+
         observations[done_mask] = 0
         rewards[done_mask] = 0
         return observations, rewards, dones

@@ -29,9 +29,8 @@ def test(config, env, model, planner, mode, render=False):
         action = select_action(config, env, planner, belief, posterior_state, mode=mode)
 
         # step in the environment
-        step_action = action[0].cpu()
         for _ in range(config.args.action_repeat):
-            next_observation, reward, dones = env.step(step_action)
+            next_observation, reward, dones = env.step(action)
             episode_rewards.append(reward.cpu().numpy() * (1 - dones.cpu().int().numpy()))
             episode_steps += (1 - dones.cpu().int().numpy())
 

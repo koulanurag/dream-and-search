@@ -127,7 +127,6 @@ class ActivateParameters:
 
     def __enter__(self):
         for param in get_parameters(self.modules):
-            # print(param.requires_grad)
             param.requires_grad = True
 
     def __exit__(self, exc_type, exc_val, exc_tb):

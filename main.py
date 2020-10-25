@@ -12,6 +12,7 @@ from core.train import train
 from core.test import test
 from core.utils import init_logger
 from pathlib import Path
+from core.planner import MPCPlanner
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Performing Search for Control with Dreamer')
@@ -124,8 +125,21 @@ if __name__ == '__main__':
             model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
             env_batch = EnvBatcher(run_config.new_game, args.test_episodes)
 
-            config, env, model, planner, render = False
-            test_output = test(config, env_batch, model, render=args.render)
+            base_policy = model.actor  # dreamer
+            if run_config.args.search_mode == 'no-search':
+                planner = base_policy
+            elif run_config.args.search_mode == 'rollout':
+                pass
+            elif run_config.args.search_mode == 'mpc':
+                planner = MPCPlanner(run_config.action_size, run_config.args.planning_horizon,
+                                     run_config.args.optimisation_iters, run_config.args.candidates,
+                                     run_config.args.top_candidates, model.transition, model.reward)
+            elif run_config.args.search_mode == 'mcts':
+                pass
+            else:
+                raise NotImplementedError
+
+            test_output = test(run_config, env_batch, model, planner, render=args.render, mode=args.search_mode)
             env_batch.close()
             logging.getLogger('test').info('Test Score: {}'.format(test_output.score))
         else:
