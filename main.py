@@ -73,6 +73,9 @@ if __name__ == '__main__':
     parser.add_argument('--render', action='store_true', help='Render environment')
     parser.add_argument('--use-wandb', action='store_true', default=False,
                         help='Use Weight and bias visualization lib for logging. (default: %(default)s)')
+    parser.add_argument('--pcont', action='store_true', default=False,
+                        help=' Learning the discount factor. (default: %(default)s)')
+    parser.add_argument('--pcont-scale', type=float, default=10.0, help='Scale for pcont')
 
     # Process arguments
     args = parser.parse_args()

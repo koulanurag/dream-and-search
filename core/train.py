@@ -67,6 +67,15 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
 
         dynamics_loss = observation_loss + reward_loss + kl_loss
 
+        # discount loss
+        if config.args.pcont:
+            pcont_pred = bottle(model.pcont, (transition_output.beliefs, transition_output.posterior_states))
+            pcont_target = config.args.discount * non_terminals
+            pcont_loss = - pcont_pred.log_prob(pcont_target).mean(dim=(0, 1))
+            pcont_loss *= config.args.pcont_scale
+            # dynamics_loss += pcont_loss
+            # Todo: include for optimization
+
         # Update dynamics parameters
         dynamics_optimizer.zero_grad()
         dynamics_loss.backward()
@@ -92,8 +101,7 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
                 imged_reward = bottle(model.reward, (imagination_output.belief, imagination_output.prior_state))
                 value_pred = bottle(model.value, (imagination_output.belief, imagination_output.prior_state))
 
-        returns = lambda_return(imged_reward, value_pred,
-                                bootstrap=value_pred[-1], discount=config.args.discount,
+        returns = lambda_return(imged_reward, value_pred, bootstrap=value_pred[-1], discount=config.args.discount,
                                 lambda_=config.args.disclam)
         policy_loss = -torch.mean(returns)
 
