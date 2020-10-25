@@ -47,8 +47,8 @@ class MPCPlanner(jit.ScriptModule):
             best_actions = actions[:, topk.view(-1)].reshape(self.planning_horizon, B, self.top_candidates,
                                                              self.action_size)
             # Update belief with new means and standard deviations
-            action_mean, action_std_dev = best_actions.mean(dim=2, keepdim=True), best_actions.std(dim=2,
-                                                                                                   unbiased=False,
-                                                                                                   keepdim=True)
+            action_mean = best_actions.mean(dim=2, keepdim=True)
+            action_std_dev = best_actions.std(dim=2, unbiased=False, keepdim=True)
+
         # Return first action mean µ_t
         return action_mean[0].squeeze(dim=1)
