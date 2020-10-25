@@ -2,17 +2,17 @@ import argparse
 import logging.config
 import os
 import sys
+from pathlib import Path
 
 import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from core.env import EnvBatcher
-from core.train import train
-from core.test import test
-from core.utils import init_logger
-from pathlib import Path
 from core.planner import MPCPlanner
+from core.test import test
+from core.train import train
+from core.utils import init_logger
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Performing Search for Control with Dreamer')

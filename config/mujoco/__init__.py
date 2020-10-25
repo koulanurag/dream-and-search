@@ -1,10 +1,14 @@
 from core.config import BaseConfig
 from core.env import GymEnv
 
-ENVS = ['Pendulum-v0', 'MountainCarContinuous-v0']
-class ClassicControlConfig(BaseConfig):
+ENVS = ['Ant-v2', 'HalfCheetah-v2', 'Hopper-v2', 'Humanoid-v2',
+        'HumanoidStandup-v2', 'InvertedDoublePendulum-v2',
+        'InvertedPendulum-v2', 'Reacher-v2', 'Swimmer-v2', 'Walker2d-v2']
+
+
+class MujocoConfig(BaseConfig):
     def __init__(self):
-        super(ClassicControlConfig, self).__init__()
+        super(MujocoConfig, self).__init__()
         self.seed_steps = 5000
         self.max_env_steps = 1000000
         self.env_itr_steps = 1000
@@ -16,4 +20,4 @@ class ClassicControlConfig(BaseConfig):
         return env
 
 
-run_config = ClassicControlConfig()
+run_config = MujocoConfig()

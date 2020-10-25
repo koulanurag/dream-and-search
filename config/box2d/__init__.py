@@ -1,10 +1,12 @@
 from core.config import BaseConfig
 from core.env import GymEnv
 
-ENVS = ['Pendulum-v0', 'MountainCarContinuous-v0']
-class ClassicControlConfig(BaseConfig):
+ENVS = ['LunarLanderContinuous-v2', 'BipedalWalker-v3', 'BipedalWalkerHardcore-v3']
+
+
+class Box2DConfig(BaseConfig):
     def __init__(self):
-        super(ClassicControlConfig, self).__init__()
+        super(Box2DConfig, self).__init__()
         self.seed_steps = 5000
         self.max_env_steps = 1000000
         self.env_itr_steps = 1000
@@ -16,4 +18,4 @@ class ClassicControlConfig(BaseConfig):
         return env
 
 
-run_config = ClassicControlConfig()
+run_config = Box2DConfig()
