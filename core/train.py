@@ -287,7 +287,8 @@ def train(config: BaseConfig, writer: SummaryWriter):
 
         # save model
         if (episodes % config.args.checkpoint_interval == 0) or total_env_steps >= config.max_env_steps:
-            torch.save(model.state_dict(), config.model_base_path + '_{}.p'.format(total_env_steps))
+            assert '.p' in config.model_path
+            torch.save(model.state_dict(), config.model_path.replace('.p', '_{}.p'.format(total_env_steps)))
             torch.save(model.state_dict(), config.model_path)
             torch.save({'model': model.state_dict(),
                         'dynamics_optimizer': dynamics_optimizer.state_dict(),
