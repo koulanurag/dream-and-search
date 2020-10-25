@@ -145,11 +145,11 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
 
 
 def _test(config, model, env, base_policy, planner, writer, best_test_score, total_env_steps):
-    no_search_test_output = test(config, env, model, base_policy)
+    no_search_test_output = test(config, env, model, base_policy, mode='no-search')
     if config.args.search_mode == 'no-search':
         with_search_test_output = no_search_test_output
     else:
-        with_search_test_output = test(config, env, model, planner)
+        with_search_test_output = test(config, env, model, planner, mode=config.args.search_mode)
 
     # save best model
     if no_search_test_output.score >= best_test_score['score']['no_search']:
@@ -243,7 +243,8 @@ def train(config: BaseConfig, writer: SummaryWriter):
                 belief, posterior_state = update_belief(model.transition, model.encoder, belief, posterior_state,
                                                         action, observation.to(device=config.args.device))
                 action = select_action(config, env, planner, belief, posterior_state, explore=True,
-                                       random=(total_env_steps < config.seed_steps))
+                                       mode=('random' if (total_env_steps < config.seed_steps)
+                                             else config.args.search_mode))
 
                 # step in the environment
                 step_action = action[0].cpu()

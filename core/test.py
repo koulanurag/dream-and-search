@@ -8,7 +8,7 @@ class TestOutput(NamedTuple):
     steps: float
 
 
-def test(config, env, model, planner, render=False):
+def test(config, env, model, planner, mode, render=False):
     observation = env.reset()
     dones = [False for _ in range(env.n)]
 
@@ -26,7 +26,7 @@ def test(config, env, model, planner, render=False):
         # update belief and determine action
         belief, posterior_state = update_belief(model.transition, model.encoder, belief, posterior_state,
                                                 action, observation.to(device=config.args.device))
-        action = select_action(config, env, planner, belief, posterior_state)
+        action = select_action(config, env, planner, belief, posterior_state, mode=mode)
 
         # step in the environment
         step_action = action[0].cpu()
@@ -35,7 +35,7 @@ def test(config, env, model, planner, render=False):
             episode_rewards.append(reward.cpu().numpy() * (1 - dones.cpu().int().numpy()))
             episode_steps += (1 - dones.cpu().int().numpy())
 
-            if config.args.render:
+            if render:
                 env.render()
 
             if all(dones):

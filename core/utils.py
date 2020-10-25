@@ -26,12 +26,12 @@ def update_belief(transition_model, encoder, belief, posterior_state, action, ob
     return belief, posterior_state
 
 
-def select_action(config, env, planner, belief, posterior_state, random=False, explore=False):
-    if random:  # collect data for seeding
+def select_action(config, env, planner, belief, posterior_state, mode, explore=False):
+    if mode == 'random':  # collect data for seeding
         action = env.sample_random_action()
         action = action.unsqueeze(0).float().to(config.args.device)
     else:
-        if config.args.search_mode == "no-search":
+        if mode == "no-search":
             action = planner.get_action(belief, posterior_state, det=not (explore))
         else:
             action = planner(belief, posterior_state)  # Get action from planner(q(s_t|o≤t,a<t), p)
