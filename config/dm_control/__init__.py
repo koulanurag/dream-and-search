@@ -22,9 +22,9 @@ class ControlSuiteEnv:
         self.t = 0  # Reset internal timer
         state = self._env.reset()
         if self.symbolic:
-            return torch.tensor(np.concatenate(
-                [np.asarray([obs]) if isinstance(obs, float) else obs for obs in state.observation.values()], axis=0),
-                dtype=torch.float32).unsqueeze(dim=0)
+            _state = [np.asarray([obs]) if (isinstance(obs, float) or obs.shape == ()) else obs
+                      for obs in state.observation.values()]
+            return torch.tensor(np.concatenate(_state, axis=0), dtype=torch.float32).unsqueeze(dim=0)
         else:
             return _images_to_observation(self._env.physics.render(camera_id=0), self.bit_depth)
 
@@ -39,9 +39,9 @@ class ControlSuiteEnv:
             if done:
                 break
         if self.symbolic:
-            observation = torch.tensor(np.concatenate(
-                [np.asarray([obs]) if isinstance(obs, float) else obs for obs in state.observation.values()], axis=0),
-                dtype=torch.float32).unsqueeze(dim=0)
+            _state = [np.asarray([obs]) if (isinstance(obs, float) or obs.shape == ()) else obs
+                      for obs in state.observation.values()]
+            observation = torch.tensor(np.concatenate(_state, axis=0), dtype=torch.float32).unsqueeze(dim=0)
         else:
             observation = _images_to_observation(self._env.physics.render(camera_id=0), self.bit_depth)
         return observation, reward, done
