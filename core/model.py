@@ -301,7 +301,7 @@ class DreamerNetwork(jit.ScriptModule):
 
         if symbolic:
             self.encoder = SymbolicEncoder(obs_size, embedding_size, activation_function='elu')
-            self.observation = SymbolicObservationNetwork(belief_size, state_size, embedding_size,
+            self.observation = SymbolicObservationNetwork(obs_size, belief_size, state_size, embedding_size,
                                                           activation_function='elu')
         else:
             self.encoder = VisualEncoder(embedding_size, activation_function='relu')
