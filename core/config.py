@@ -23,7 +23,7 @@ class BaseConfig(object):
     def get_hparams(self):
         hparams = {k: v for k, v in vars(self.args).items() if v is not None}
         for k, v in self.__dict__.items():
-            if 'path' not in k and 'args' not in k and (v is not None):
+            if 'path' not in k and 'args' not in k and 'sample_random_action' not in k and (v is not None):
                 hparams[k] = v
         return hparams
 
