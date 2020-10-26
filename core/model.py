@@ -245,7 +245,7 @@ class ValueNetwork(jit.ScriptModule):
 
 
 class ActorNetwork(jit.ScriptModule):
-    def __init__(self, belief_size, state_size, hidden_size, action_size, dist='tanh_normal',
+    def __init__(self, belief_size, state_size, hidden_size, action_size, sample_random_action_fn, dist='tanh_normal',
                  activation_function='elu', min_std=1e-4, init_std=5.0, mean_scale=5.0):
         super().__init__()
         self.act_fn = getattr(F, activation_function)
@@ -260,6 +260,7 @@ class ActorNetwork(jit.ScriptModule):
         self._min_std = min_std
         self._init_std = torch.tensor(init_std)
         self._mean_scale = mean_scale
+        self._sample_random_action = sample_random_action_fn
 
     @jit.script_method
     def forward(self, belief, state):
@@ -287,9 +288,13 @@ class ActorNetwork(jit.ScriptModule):
         else:
             return dist.rsample()
 
+    def sample_random_action(self, batch=1):
+        return torch.FloatTensor([self._sample_random_action().numpy() for _ in range(batch)])
+
 
 class DreamerNetwork(jit.ScriptModule):
-    def __init__(self, obs_size, belief_size, state_size, hidden_size, embedding_size, action_size, symbolic: bool):
+    def __init__(self, obs_size, belief_size, state_size, hidden_size, embedding_size, action_size,
+                 sample_random_action_fn, symbolic: bool):
         super(DreamerNetwork, self).__init__()
 
         self.belief_size = belief_size
@@ -310,7 +315,7 @@ class DreamerNetwork(jit.ScriptModule):
 
         self.transition = TransitionNetwork(belief_size, state_size, action_size, hidden_size, embedding_size)
         self.reward = RewardNetwork(self.belief_size, self.state_size, hidden_size)
-        self.actor = ActorNetwork(self.belief_size, self.state_size, hidden_size, action_size)
+        self.actor = ActorNetwork(self.belief_size, self.state_size, hidden_size, action_size, sample_random_action_fn)
         self.value = ValueNetwork(self.belief_size, self.state_size, hidden_size)
 
     @jit.script_method

@@ -17,6 +17,7 @@ class BaseConfig(object):
                               hidden_size=200,
                               embedding_size=200,
                               action_size=self.action_size,
+                              sample_random_action_fn = self.sample_random_action,
                               symbolic=self.args.symbolic_env)
 
     def get_hparams(self):
@@ -42,4 +43,6 @@ class BaseConfig(object):
         env = self.new_game()
         self.observation_size = env.observation_size
         self.action_size = env.action_size
-        env.close()
+        self.sample_random_action = env.sample_random_action
+        # env.close()
+

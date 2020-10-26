@@ -10,7 +10,7 @@ from .config import BaseConfig
 from .env import EnvBatcher
 from .memory import ExperienceReplay
 from .model import bottle
-from .planner import MPCPlanner
+from .planner import MPCPlanner, RolloutPlanner
 from .utils import imagine_ahead, lambda_return, FreezeParameters
 from .test import test
 from collections import defaultdict
@@ -207,14 +207,21 @@ def train(config: BaseConfig, writer: SummaryWriter):
     optimizer = (dynamics_optimizer, value_optimizer, policy_optimizer)
 
     # Select Planner
-    base_policy = model.actor  # dreamer
+    base_policy, test_base_policy = model.actor, test_model.actor  # dreamer
     if config.args.search_mode == 'no-search':
-        planner = base_policy
+        planner, test_planner = base_policy, test_base_policy
     elif config.args.search_mode == 'rollout':
-        pass
+        planner = RolloutPlanner(config.args.rollout_proposal_action, config.args.rollout_uniform_action,
+                                 config.args.planning_horizon, model, config.args.discount, config.args.disclam)
+        test_planner = RolloutPlanner(config.args.rollout_proposal_action, config.args.rollout_uniform_action,
+                                      config.args.planning_horizon, test_model, config.args.discount,
+                                      config.args.disclam)
     elif config.args.search_mode == 'mpc':
         planner = MPCPlanner(env.action_size, config.args.planning_horizon, config.args.optimisation_iters,
                              config.args.candidates, config.args.top_candidates, model.transition, model.reward)
+        test_planner = MPCPlanner(env.action_size, config.args.planning_horizon, config.args.optimisation_iters,
+                                  config.args.candidates, config.args.top_candidates,
+                                  test_model.transition, test_model.reward)
     elif config.args.search_mode == 'mcts':
         pass
     else:
@@ -269,7 +276,7 @@ def train(config: BaseConfig, writer: SummaryWriter):
                     # Note : This is kept inside env step for-loop to keep test intervals sync. across multiple seeds.
                     if total_env_steps % config.test_interval_steps == 0 and total_env_steps > config.seed_steps:
                         test_model.load_state_dict(model.state_dict())
-                        _test(config, test_model, test_envs, base_policy, planner, writer, best_test_score,
+                        _test(config, test_model, test_envs, test_base_policy, test_planner, writer, best_test_score,
                               total_env_steps)
 
                     if done:

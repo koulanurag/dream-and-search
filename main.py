@@ -9,7 +9,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from core.env import EnvBatcher
-from core.planner import MPCPlanner
+from core.planner import MPCPlanner, RolloutPlanner
 from core.test import test
 from core.train import train
 from core.utils import init_logger
@@ -76,6 +76,10 @@ if __name__ == '__main__':
     parser.add_argument('--pcont', action='store_true', default=False,
                         help=' Learning the discount factor. (default: %(default)s)')
     parser.add_argument('--pcont-scale', type=float, default=10.0, help='Scale for pcont')
+    parser.add_argument('--rollout-uniform-action', type=int, default=100,
+                        help='No. of uniform actions to be sampled for rollout planning (default: %(default)s)')
+    parser.add_argument('--rollout-proposal-action', type=int, default=50,
+                        help='No. of proposal actions to be sampled for rollout planning (default: %(default)s)')
 
     # Process arguments
     args = parser.parse_args()
@@ -132,7 +136,10 @@ if __name__ == '__main__':
             if run_config.args.search_mode == 'no-search':
                 planner = base_policy
             elif run_config.args.search_mode == 'rollout':
-                pass
+                planner = RolloutPlanner(run_config.args.rollout_proposal_action,
+                                         run_config.args.rollout_uniform_action,
+                                         run_config.args.planning_horizon, model, run_config.args.discount,
+                                         run_config.args.disclam)
             elif run_config.args.search_mode == 'mpc':
                 planner = MPCPlanner(run_config.action_size, run_config.args.planning_horizon,
                                      run_config.args.optimisation_iters, run_config.args.candidates,
