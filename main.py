@@ -80,6 +80,18 @@ if __name__ == '__main__':
                         help='No. of uniform actions to be sampled for rollout planning (default: %(default)s)')
     parser.add_argument('--rollout-proposal-action', type=int, default=50,
                         help='No. of proposal actions to be sampled for rollout planning (default: %(default)s)')
+    parser.add_argument('--mcts-fixed-proposal-action', type=int, default=20,
+                        help='No. of proposal actions to be sampled for rollout planning (default: %(default)s)')
+    parser.add_argument('--mcts-num-simulations', type=int, default=50,
+                        help='No. of proposal actions to be sampled for rollout planning (default: %(default)s)')
+    parser.add_argument('--mcts-cpw', type=float, default=1.0,
+                        help='No. of proposal actions to be sampled for rollout planning (default: %(default)s)')
+    parser.add_argument('--mcts-alpha', type=float, default=0.5,
+                        help='No. of proposal actions to be sampled for rollout planning (default: %(default)s)')
+    parser.add_argument('--pb-c-init', type=float, default=1.25,
+                        help='No. of proposal actions to be sampled for rollout planning (default: %(default)s)')
+    parser.add_argument('--pb-c-base', type=float, default=19652,
+                        help='No. of proposal actions to be sampled for rollout planning (default: %(default)s)')
 
     # Process arguments
     args = parser.parse_args()

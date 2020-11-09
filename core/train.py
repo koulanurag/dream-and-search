@@ -10,7 +10,7 @@ from .config import BaseConfig
 from .env import EnvBatcher
 from .memory import ExperienceReplay
 from .model import bottle
-from .planner import MPCPlanner, RolloutPlanner
+from .planner import MPCPlanner, RolloutPlanner, MCTS
 from .utils import imagine_ahead, lambda_return, FreezeParameters
 from .test import test
 from collections import defaultdict
@@ -223,6 +223,8 @@ def train(config: BaseConfig, writer: SummaryWriter):
                                   config.args.candidates, config.args.top_candidates,
                                   test_model.transition, test_model.reward)
     elif config.args.search_mode == 'mcts':
+        planner = MCTS(config, model, exploration=True)
+        test_planner = MCTS(config, model, exploration=False)
         pass
     else:
         raise NotImplementedError
