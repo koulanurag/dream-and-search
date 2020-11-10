@@ -1,34 +1,8 @@
 import math
-from typing import NamedTuple
 import numpy as np
 import torch
-from torch import Tensor
 
 from torch.distributions import Normal
-
-
-class ActionCapsule(NamedTuple):
-    action: Tensor
-    repeat: int
-    repeat_one_hot: Tensor
-
-    def __eq__(self, other):
-        if (self.action == other.action).all().item() and self.repeat == other.repeat:
-            return True
-        else:
-            return False
-
-    def __gt__(self, other):
-        if (self.action < other.action).all().item():
-            return True
-        else:
-            return False
-
-    def __ge__(self, other):
-        if (self.action < other.action).all().item():
-            return True
-        else:
-            return False
 
 
 class MinMaxStats(object):
@@ -51,7 +25,7 @@ class MinMaxStats(object):
 
 class Node(object):
 
-    def __init__(self, action_log_prob: float, root=False):
+    def __init__(self, action_log_prob: float, root=False, ):
         self.visit_count = 0
         self.root = root
         self.prior = None
@@ -150,38 +124,16 @@ class MCTS(object):
         if (self.progressive and p <= len(node.children.keys())) or (not self.progressive):
             _, action, child = max(((self.ucb_score(node, child, min_max_stats), action, child)
                                     for action, child in node.children.items()), key=lambda t: t[0])
-        else:
+        else:  # progressive widening
             belief, state = node.hidden_state
-            actor_output = node.actor_output
-
-            # add an action to the node
-            action = model.actor.action_sample(actor_output, deterministic=False)
-            action_sample_attempt = 0
-
-            rounded = lambda arr: np.around(arr.cpu().numpy(), 2).tolist()
-
-            while action_sample_attempt < 100 and \
-                    (rounded(action) in [rounded(action_cap.action.squeeze(0)) for action_cap in node.children.keys()]):
-                action = model.actor.action_sample(actor_output, deterministic=False)
-                action_sample_attempt += 1
-
-            if action_sample_attempt == 99:
-                print('Something is wrong in sampling')
-
-            actor_repeat_output = model.actor_repeat(belief, state, action)
-            action_repeat_one_hot, action_repeat = model.actor_repeat.sample(actor_repeat_output, deterministic=False)
-            action_cap = ActionCapsule(action.unsqueeze(0), action_repeat.int().item(),
-                                       action_repeat_one_hot.unsqueeze(0))
-
-            actor_dist = model.actor.action_dist(actor_output)
-            action_log_prob = - actor_dist.entropy(action)
-
-            child = Node(action_log_prob.item())
-            node.children[action_cap] = child
+            action = model.actor.get_action(belief, state, det=False)
+            action = torch.clamp(Normal(action, self.config.args.action_noise).rsample(), -1, 1)
+            child = Node(0)
+            node.children[action] = child
             node.update_prior()
 
             if self.exploration and node.root:
-                node.add_exploration_noise(self.config.root_dirichlet_alpha, self.config.root_exploration_fraction)
+                node.add_exploration_noise(self.config.args.root_dirichlet_alpha, self.config.args.root_exploration_fraction)
 
         return action, child
 

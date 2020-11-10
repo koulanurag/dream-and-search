@@ -185,7 +185,7 @@ def _test(config, model, env, base_policy, planner, writer, best_test_score, tot
 def train(config: BaseConfig, writer: SummaryWriter):
     # create envs
     env = config.new_game(seed=config.args.seed)
-    test_envs = EnvBatcher(config.new_game, 2)
+    test_envs = EnvBatcher(config.new_game, 1)
 
     # create memory
     D = ExperienceReplay(config.args.experience_size, config.args.symbolic_env, env.observation_size,
@@ -222,9 +222,9 @@ def train(config: BaseConfig, writer: SummaryWriter):
         test_planner = MPCPlanner(env.action_size, config.args.planning_horizon, config.args.optimisation_iters,
                                   config.args.candidates, config.args.top_candidates,
                                   test_model.transition, test_model.reward)
-    elif config.args.search_mode == 'mcts':
-        planner = MCTS(config, model, exploration=True)
-        test_planner = MCTS(config, model, exploration=False)
+    elif 'mcts' in config.args.search_mode:
+        planner = MCTS(config, model, exploration=True, progressive='progressive' in config.args.search_mode)
+        test_planner = MCTS(config, test_model, exploration=False, progressive='progressive' in config.args.search_mode)
         pass
     else:
         raise NotImplementedError

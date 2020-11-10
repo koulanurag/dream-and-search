@@ -9,7 +9,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from core.env import EnvBatcher
-from core.planner import MPCPlanner, RolloutPlanner
+from core.planner import MPCPlanner, RolloutPlanner, MCTS
 from core.test import test
 from core.train import train
 from core.utils import init_logger
@@ -17,7 +17,7 @@ from core.utils import init_logger
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Performing Search for Control with Dreamer')
     parser.add_argument('--search-mode', type=str, default='no-search', help='Search Mode to be used for planning',
-                        choices=['no-search', 'rollout', 'mcts', 'mpc'])
+                        choices=['no-search', 'rollout', 'mcts+fixed', 'mcts+progressive', 'mpc'])
     parser.add_argument('--seed', type=int, default=1, metavar='S', help='Random seed')
     parser.add_argument('--no-cuda', action='store_true', help='Disable CUDA')
     parser.add_argument('--env', type=str, default='cartpole-balance', help='Gym/Control Suite environment')
@@ -92,6 +92,10 @@ if __name__ == '__main__':
                         help='No. of proposal actions to be sampled for rollout planning (default: %(default)s)')
     parser.add_argument('--pb-c-base', type=float, default=19652,
                         help='No. of proposal actions to be sampled for rollout planning (default: %(default)s)')
+    parser.add_argument('--root-dirichlet-alpha', type=float, default=0.25,
+                        help='No. of proposal actions to be sampled for rollout planning (default: %(default)s)')
+    parser.add_argument('--root-exploration-fraction', type=float, default=0.25,
+                        help='No. of proposal actions to be sampled for rollout planning (default: %(default)s)')
 
     # Process arguments
     args = parser.parse_args()
@@ -156,8 +160,8 @@ if __name__ == '__main__':
                 planner = MPCPlanner(run_config.action_size, run_config.args.planning_horizon,
                                      run_config.args.optimisation_iters, run_config.args.candidates,
                                      run_config.args.top_candidates, model.transition, model.reward)
-            elif run_config.args.search_mode == 'mcts':
-                pass
+            elif 'mcts' in run_config.args.search_mode:
+                planner = MCTS(run_config, model, exploration=False, progressive='progressive')
             else:
                 raise NotImplementedError
 

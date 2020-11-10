@@ -13,3 +13,6 @@ __pycache__/
 # ignore wandb logs
 wandb/*
 
+# ignore result dir
+results/*
+
