@@ -48,9 +48,9 @@ if __name__ == '__main__':
     parser.add_argument('--global-kl-beta', type=float, default=0, metavar='βg', help='Global KL weight (0 to disable)')
     parser.add_argument('--free-nats', type=float, default=3.0, metavar='F', help='Free nats')
     parser.add_argument('--bit-depth', type=int, default=5, metavar='B', help='Image bit depth (quantisation)')
-    parser.add_argument('--dynamics_lr', type=float, default=1e-3, metavar='α', help='Learning rate')
-    parser.add_argument('--actor_lr', type=float, default=8e-5, metavar='α', help='Learning rate')
-    parser.add_argument('--value_lr', type=float, default=8e-5, metavar='α', help='Learning rate')
+    parser.add_argument('--dynamics_lr', type=float, default=1e-3, metavar='α', help='Learning rate for Dynamics')
+    parser.add_argument('--actor_lr', type=float, default=8e-5, metavar='α', help='Learning rate for Actor')
+    parser.add_argument('--value_lr', type=float, default=8e-5, metavar='α', help='Learning rate for Value')
     parser.add_argument('--learning-rate-schedule', type=int, default=0, metavar='αS',
                         help='Linear learning rate schedule (optimisation steps from 0 to final learning rate;'
                              ' 0 to disable)')
@@ -81,21 +81,22 @@ if __name__ == '__main__':
     parser.add_argument('--rollout-proposal-action', type=int, default=50,
                         help='No. of proposal actions to be sampled for rollout planning (default: %(default)s)')
     parser.add_argument('--mcts-fixed-proposal-action', type=int, default=20,
-                        help='No. of proposal actions to be sampled for rollout planning (default: %(default)s)')
+                        help='No. of proposal actions to be sampled for mcts for each child. '
+                             'This is applying only for mcts+fixed mode(default: %(default)s)')
     parser.add_argument('--mcts-num-simulations', type=int, default=50,
                         help='No. of proposal actions to be sampled for rollout planning (default: %(default)s)')
     parser.add_argument('--mcts-cpw', type=float, default=1.0,
-                        help='No. of proposal actions to be sampled for rollout planning (default: %(default)s)')
+                        help='MCTS cpw for progressive mode (default: %(default)s)')
     parser.add_argument('--mcts-alpha', type=float, default=0.5,
-                        help='No. of proposal actions to be sampled for rollout planning (default: %(default)s)')
+                        help='MCTS alpha for progressive mode (default: %(default)s)')
     parser.add_argument('--pb-c-init', type=float, default=1.25,
-                        help='No. of proposal actions to be sampled for rollout planning (default: %(default)s)')
+                        help='MCTS ucb estimation attribute (default: %(default)s)')
     parser.add_argument('--pb-c-base', type=float, default=19652,
-                        help='No. of proposal actions to be sampled for rollout planning (default: %(default)s)')
+                        help='MCTS ucb estimation attribute (default: %(default)s)')
     parser.add_argument('--root-dirichlet-alpha', type=float, default=0.25,
-                        help='No. of proposal actions to be sampled for rollout planning (default: %(default)s)')
+                        help='Exploration noise for root of MCTS (default: %(default)s)')
     parser.add_argument('--root-exploration-fraction', type=float, default=0.25,
-                        help='No. of proposal actions to be sampled for rollout planning (default: %(default)s)')
+                        help='Exploratiom fraction for root of MCTS (default: %(default)s)')
 
     # Process arguments
     args = parser.parse_args()
