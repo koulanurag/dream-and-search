@@ -8,13 +8,14 @@ from ..utils import imagine_ahead, lambda_return
 class RolloutPlanner:
     __constants__ = ['proposal_action_count', 'uniform_action_count', 'planning_horizon', 'gamma', 'disclam']
 
-    def __init__(self, proposal_action_count, uniform_action_count, planning_horizon, model, gamma, disclam):
+    def __init__(self, proposal_action_count, uniform_action_count, planning_horizon, model, discount, disclam, pcont):
         super().__init__()
         self.proposal_action_count = proposal_action_count
         self.uniform_action_count = uniform_action_count
         self.model = model
         self.planning_horizon = planning_horizon
-        self.gamma = gamma
+        self.discount = discount
+        self.pcont = pcont
         self.disclam = disclam
 
     # @jit.script_method
@@ -41,10 +42,13 @@ class RolloutPlanner:
 
         imged_reward = bottle(self.model.reward, (imagination_output.belief, imagination_output.prior_state))
         value_pred = bottle(self.model.value, (imagination_output.belief, imagination_output.prior_state))
+        if self.pcont:
+            pcont_pred = bottle(self.model.pcont, (imagination_output.belief, imagination_output.prior_state))
+        else:
+            pcont_pred = self.discount * torch.ones_like(imged_reward)
 
-        returns = lambda_return(imged_reward, value_pred,
+        returns = lambda_return(imged_reward, value_pred, pcont_pred,
                                 bootstrap=value_pred[-1],
-                                discount=self.gamma,
                                 lambda_=self.disclam)
 
         # get value of root childs

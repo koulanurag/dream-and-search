@@ -224,7 +224,7 @@ class RewardNetwork(jit.ScriptModule):
         return reward
 
 
-class ValueNetwork(jit.ScriptModule):
+class DenseNetwork(jit.ScriptModule):
     def __init__(self, belief_size, state_size, hidden_size, activation_function='relu'):
         super().__init__()
         self.act_fn = getattr(F, activation_function)
@@ -240,8 +240,8 @@ class ValueNetwork(jit.ScriptModule):
         hidden = self.act_fn(self.fc1(x))
         hidden = self.act_fn(self.fc2(hidden))
         hidden = self.act_fn(self.fc3(hidden))
-        reward = self.fc4(hidden).squeeze(dim=1)
-        return reward
+        output = self.fc4(hidden).squeeze(dim=1)
+        return output
 
 
 class ActorNetwork(jit.ScriptModule):
@@ -316,7 +316,9 @@ class DreamerNetwork(jit.ScriptModule):
         self.transition = TransitionNetwork(belief_size, state_size, action_size, hidden_size, embedding_size)
         self.reward = RewardNetwork(self.belief_size, self.state_size, hidden_size)
         self.actor = ActorNetwork(self.belief_size, self.state_size, hidden_size, action_size, sample_random_action_fn)
-        self.value = ValueNetwork(self.belief_size, self.state_size, hidden_size)
+        self.value = DenseNetwork(self.belief_size, self.state_size, hidden_size)
+        self.pcont = nn.Sequential(DenseNetwork(self.belief_size, self.state_size, hidden_size),
+                                   nn.Sigmoid())
 
     @jit.script_method
     def init_action(self, batch_size: int = 1):

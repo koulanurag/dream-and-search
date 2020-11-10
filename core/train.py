@@ -1,7 +1,7 @@
 import logging
 
 import torch
-from torch.distributions import Normal, kl_divergence
+from torch.distributions import Normal, kl_divergence, Bernoulli
 from torch.nn import functional as F
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
@@ -70,11 +70,11 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
         # discount loss
         if config.args.pcont:
             pcont_pred = bottle(model.pcont, (transition_output.beliefs, transition_output.posterior_states))
+            pcont_dist = Bernoulli(pcont_pred)
             pcont_target = config.args.discount * non_terminals
-            pcont_loss = - pcont_pred.log_prob(pcont_target).mean(dim=(0, 1))
+            pcont_loss = - pcont_dist.log_prob(pcont_target).mean(dim=(0, 1))
             pcont_loss *= config.args.pcont_scale
-            # dynamics_loss += pcont_loss
-            # Todo: include for optimization
+            dynamics_loss += pcont_loss
 
         # Update dynamics parameters
         dynamics_optimizer.zero_grad()
@@ -83,6 +83,8 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
         torch.nn.utils.clip_grad_norm_(model.reward.parameters(), config.args.grad_clip_norm, norm_type=2)
         torch.nn.utils.clip_grad_norm_(model.observation.parameters(), config.args.grad_clip_norm, norm_type=2)
         torch.nn.utils.clip_grad_norm_(model.encoder.parameters(), config.args.grad_clip_norm, norm_type=2)
+        if config.args.pcont:
+            torch.nn.utils.clip_grad_norm_(model.pcont.parameters(), config.args.grad_clip_norm, norm_type=2)
         dynamics_optimizer.step()
 
         # ##################
@@ -100,10 +102,14 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
             with FreezeParameters([model.value]):
                 imged_reward = bottle(model.reward, (imagination_output.belief, imagination_output.prior_state))
                 value_pred = bottle(model.value, (imagination_output.belief, imagination_output.prior_state))
+                if config.args.pcont:
+                    pcont_pred = bottle(model.pcont, (imagination_output.belief, imagination_output.prior_state))
+                else:
+                    pcont_pred = config.args.discount * torch.ones_like(imged_reward)
 
-        returns = lambda_return(imged_reward, value_pred, bootstrap=value_pred[-1], discount=config.args.discount,
+        returns = lambda_return(imged_reward, value_pred, pcont_pred, bootstrap=value_pred[-1],
                                 lambda_=config.args.disclam)
-        policy_loss = -torch.mean(returns)
+        policy_loss = -torch.mean(returns)  # Todo : Do we need to multiply with discount?
 
         # Update policy parameters
         policy_optimizer.zero_grad()
@@ -201,7 +207,9 @@ def train(config: BaseConfig, writer: SummaryWriter):
     dynamics_optimizer = Adam([{'params': model.transition.parameters()},
                                {'params': model.observation.parameters()},
                                {'params': model.reward.parameters()},
-                               {'params': model.encoder.parameters()}], lr=config.args.dynamics_lr)
+                               {'params': model.encoder.parameters()}] +
+                              ([{'params': model.pcont.parameters()}] if config.args.pcont else []),
+                              lr=config.args.dynamics_lr)
     value_optimizer = Adam([{'params': model.value.parameters()}], lr=config.args.value_lr)
     policy_optimizer = Adam([{'params': model.actor.parameters()}], lr=config.args.actor_lr)
     optimizer = (dynamics_optimizer, value_optimizer, policy_optimizer)
