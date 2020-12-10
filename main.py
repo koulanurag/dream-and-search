@@ -21,7 +21,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=1, metavar='S', help='Random seed')
     parser.add_argument('--no-cuda', action='store_true', help='Disable CUDA')
     parser.add_argument('--env', type=str, default='cartpole-balance', help='Gym/Control Suite environment')
-    parser.add_argument('--case', type=str, default='dm_control', choices=['dm_control', 'box2d', 'classic_control'],
+    parser.add_argument('--case', type=str, default='dm_control', choices=['dm_control','cassie', 'box2d', 'classic_control'],
                         help="It's used for switching between different domains(default: %(default)s)")
     parser.add_argument('--results-dir', type=Path, default=os.path.join(os.getcwd(), 'results'),
                         help="Directory Path to store results (default: %(default)s)")
