@@ -38,7 +38,7 @@ class SymbolicObservationNetwork(jit.ScriptModule):
         self.fc3 = nn.Linear(embedding_size, observation_size)
         self.modules = [self.fc1, self.fc2, self.fc3]
 
-    @jit.script_method
+    @jit.ScriptModule
     def forward(self, belief, state):
         hidden = self.act_fn(self.fc1(torch.cat([belief, state], dim=1)))
         hidden = self.act_fn(self.fc2(hidden))
@@ -60,7 +60,7 @@ class VisualObservationNetwork(jit.ScriptModule):
         self.conv4 = nn.ConvTranspose2d(32, 3, 6, stride=2)
         self.modules = [self.fc1, self.conv1, self.conv2, self.conv3, self.conv4]
 
-    @jit.script_method
+    @jit.ScriptModule
     def forward(self, belief, state):
         hidden = self.fc1(torch.cat([belief, state], dim=1))  # No nonlinearity here
         hidden = hidden.view(-1, self.embedding_size, 1, 1)
@@ -80,7 +80,7 @@ class SymbolicEncoder(jit.ScriptModule):
         self.fc3 = nn.Linear(embedding_size, embedding_size)
         self.modules = [self.fc1, self.fc2, self.fc3]
 
-    @jit.script_method
+    @jit.ScriptModule
     def forward(self, observation):
         hidden = self.act_fn(self.fc1(observation))
         hidden = self.act_fn(self.fc2(hidden))
@@ -102,7 +102,7 @@ class VisualEncoder(jit.ScriptModule):
         self.fc = nn.Identity() if embedding_size == 1024 else nn.Linear(1024, embedding_size)
         self.modules = [self.conv1, self.conv2, self.conv3, self.conv4]
 
-    @jit.script_method
+    @jit.ScriptModule
     def forward(self, observation):
         hidden = self.act_fn(self.conv1(observation))
         hidden = self.act_fn(self.conv2(hidden))
@@ -140,7 +140,7 @@ class TransitionNetwork(jit.ScriptModule):
     # ps: -X-
     # b : -x--X--X--X--X--X-
     # s : -x--X--X--X--X--X-
-    @jit.script_method
+    @jit.ScriptModule
     def forward(self, prev_state: torch.Tensor, actions: torch.Tensor, prev_belief: torch.Tensor,
                 observations: Optional[torch.Tensor] = None, nonterminals: Optional[torch.Tensor] = None) -> \
             TransitionOutput:
@@ -215,7 +215,7 @@ class RewardNetwork(jit.ScriptModule):
         self.fc3 = nn.Linear(hidden_size, 1)
         self.modules = [self.fc1, self.fc2, self.fc3]
 
-    @jit.script_method
+    @jit.ScriptModule
     def forward(self, belief, state):
         x = torch.cat([belief, state], dim=1)
         hidden = self.act_fn(self.fc1(x))
@@ -234,7 +234,7 @@ class DenseNetwork(jit.ScriptModule):
         self.fc4 = nn.Linear(hidden_size, 1)
         self.modules = [self.fc1, self.fc2, self.fc3, self.fc4]
 
-    @jit.script_method
+    @jit.ScriptModule
     def forward(self, belief, state):
         x = torch.cat([belief, state], dim=1)
         hidden = self.act_fn(self.fc1(x))
@@ -262,7 +262,7 @@ class ActorNetwork(jit.ScriptModule):
         self._mean_scale = mean_scale
         self._sample_random_action = sample_random_action_fn
 
-    @jit.script_method
+    @jit.ScriptModule
     def forward(self, belief, state):
         raw_init_std = torch.log(torch.exp(self._init_std) - 1)
         x = torch.cat([belief, state], dim=1)
@@ -292,6 +292,16 @@ class ActorNetwork(jit.ScriptModule):
         return torch.FloatTensor([self._sample_random_action().numpy() for _ in range(batch)])
 
 
+class PcontNetwork(jit.ScriptModule):
+    def __init__(self, belief_size, state_size, hidden_size):
+        super(PcontNetwork, self).__init__()
+        self.dense = DenseNetwork(belief_size, state_size, hidden_size)
+
+    def forward(self, belief, state):
+        x = self.dense(belief, state)
+        return torch.sigmoid(x)
+
+
 class DreamerNetwork(jit.ScriptModule):
     def __init__(self, obs_size, belief_size, state_size, hidden_size, embedding_size, action_size,
                  sample_random_action_fn, symbolic: bool):
@@ -317,18 +327,17 @@ class DreamerNetwork(jit.ScriptModule):
         self.reward = RewardNetwork(self.belief_size, self.state_size, hidden_size)
         self.actor = ActorNetwork(self.belief_size, self.state_size, hidden_size, action_size, sample_random_action_fn)
         self.value = DenseNetwork(self.belief_size, self.state_size, hidden_size)
-        self.pcont = nn.Sequential(DenseNetwork(self.belief_size, self.state_size, hidden_size),
-                                   nn.Sigmoid())
+        self.pcont = PcontNetwork(self.belief_size, self.state_size, hidden_size)
 
-    @jit.script_method
+    @jit.ScriptModule
     def init_action(self, batch_size: int = 1):
         return torch.zeros((batch_size, self.num_actions))
 
-    @jit.script_method
+    @jit.ScriptModule
     def init_belief(self, batch_size: int = 1):
         return torch.zeros((batch_size, self.belief_size))
 
-    @jit.script_method
+    @jit.ScriptModule
     def init_state(self, batch_size: int = 1):
         return torch.zeros((batch_size, self.state_size))
 

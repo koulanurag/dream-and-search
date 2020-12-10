@@ -107,6 +107,8 @@ if __name__ == '__main__':
         from config.classic_control import run_config
     elif args.case == 'box2d':
         from config.box2d import run_config
+    elif args.case == 'cassie':
+        from config.cassie import run_config
     elif args.case == 'dm_control':
         from config.dm_control import run_config
     else:

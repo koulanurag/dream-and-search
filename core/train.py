@@ -71,7 +71,7 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
         if config.args.pcont:
             pcont_pred = bottle(model.pcont, (transition_output.beliefs, transition_output.posterior_states))
             pcont_dist = Bernoulli(pcont_pred)
-            pcont_target = config.args.discount * non_terminals
+            pcont_target = config.args.discount * non_terminals[:-1].squeeze(-1)
             pcont_loss = - pcont_dist.log_prob(pcont_target).mean(dim=(0, 1))
             pcont_loss *= config.args.pcont_scale
             dynamics_loss += pcont_loss
