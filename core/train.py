@@ -69,17 +69,17 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
         dynamics_loss = observation_loss + reward_loss + kl_loss
 
         # discount loss
+        pcont_loss = 0
         if config.args.pcont:
             pcont_pred = bottle(model.pcont, (transition_output.beliefs, transition_output.posterior_states))
             pcont_dist = Bernoulli(pcont_pred)
             pcont_target = config.args.discount * non_terminals[:-1].squeeze(-1)
             pcont_loss = - pcont_dist.log_prob(pcont_target).mean(dim=(0, 1))
             pcont_loss *= config.args.pcont_scale
-            dynamics_loss += pcont_loss
 
         # Update dynamics parameters
         dynamics_optimizer.zero_grad()
-        dynamics_loss.backward()
+        (dynamics_loss + pcont_loss).backward()
         torch.nn.utils.clip_grad_norm_(model.transition.parameters(), config.args.grad_clip_norm, norm_type=2)
         torch.nn.utils.clip_grad_norm_(model.reward.parameters(), config.args.grad_clip_norm, norm_type=2)
         torch.nn.utils.clip_grad_norm_(model.observation.parameters(), config.args.grad_clip_norm, norm_type=2)
@@ -142,6 +142,7 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
         losses['obs'] += observation_loss.item()
         losses['reward'] += reward_loss.item()
         losses['kl'] += kl_loss.item()
+        losses['pcont'] += pcont_loss.item()
 
         # log distribution
         count_tracker['updates'] += 1
@@ -157,10 +158,12 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
     writer.add_scalar('train/obs_loss', losses['obs'], total_env_steps)
     writer.add_scalar('train/reward_loss', losses['reward'], total_env_steps)
     writer.add_scalar('train/kl_loss', losses['kl'], total_env_steps)
+    if config.args.pcont:
+        writer.add_scalar('train/pcont_loss', losses['pcont'], total_env_steps)
 
     _msg = 'env steps #{:<10}'.format(total_env_steps)
     _msg += 'actor loss:{:<8.3f} value loss: {:<8.3f} '.format(losses['actor'], losses['value'])
-    _msg += 'obs loss : {:<8.3f} reward loss : {:<8.3f} kl loss: {:<8.3f}'.format(losses['obs'], losses['reward'],
+    _msg += 'obs loss : {:<8.3f} reward loss : {:<8.3f} kl loss: {:<8.3f} '.format(losses['obs'], losses['reward'],
                                                                                   losses['kl'])
     train_logger.info(_msg)
 
