@@ -146,8 +146,11 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
 
         # log distribution
         count_tracker['updates'] += 1
-        writer.add_histogram('train_data/terminal', (1 - non_terminals).flatten().data.cpu().numpy(),
+        _terminal_data = (1 - non_terminals).flatten().data.cpu().numpy()
+        writer.add_histogram('train_data/terminal', _terminal_data,
                              count_tracker['updates'])
+        writer.add_scalar('train_data/terminal', sum(_terminal_data) / len(_terminal_data),
+                          count_tracker['updates'])
         writer.add_histogram('train_data/reward', rewards.flatten().data.cpu().numpy(), count_tracker['updates'])
 
     losses = {k: v / config.args.collect_interval for k, v in losses.items()}
@@ -164,7 +167,7 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
     _msg = 'env steps #{:<10}'.format(total_env_steps)
     _msg += 'actor loss:{:<8.3f} value loss: {:<8.3f} '.format(losses['actor'], losses['value'])
     _msg += 'obs loss : {:<8.3f} reward loss : {:<8.3f} kl loss: {:<8.3f} '.format(losses['obs'], losses['reward'],
-                                                                                  losses['kl'])
+                                                                                   losses['kl'])
     train_logger.info(_msg)
 
 
