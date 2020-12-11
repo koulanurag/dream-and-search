@@ -18,6 +18,7 @@ from .utils import update_belief, select_action
 
 train_logger = logging.getLogger('train')
 test_logger = logging.getLogger('train_eval')
+count_tracker = {'updates': 0}
 
 
 def update_params(config, model, optimizers, D, free_nats, global_prior, writer, total_env_steps):
@@ -141,6 +142,12 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
         losses['obs'] += observation_loss.item()
         losses['reward'] += reward_loss.item()
         losses['kl'] += kl_loss.item()
+
+        # log distribution
+        count_tracker['updates'] += 1
+        writer.add_histogram('train_data/terminal', (1 - non_terminals).flatten().data.cpu().numpy(),
+                             count_tracker['updates'])
+        writer.add_histogram('train_data/reward', rewards.flatten().data.cpu().numpy(), count_tracker['updates'])
 
     losses = {k: v / config.args.collect_interval for k, v in losses.items()}
 
