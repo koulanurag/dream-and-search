@@ -120,3 +120,6 @@ class EnvBatcher():
 
     def close(self):
         [env.close() for env in self.envs]
+
+    def render(self):
+        return [env.render() for env in self.envs]
