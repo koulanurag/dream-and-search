@@ -75,7 +75,7 @@ if __name__ == '__main__':
                         help='Use Weight and bias visualization lib for logging. (default: %(default)s)')
     parser.add_argument('--pcont', action='store_true', default=False,
                         help=' Learning the discount factor. (default: %(default)s)')
-    parser.add_argument('--enforce-terminal-state', action='store_true', default=False,
+    parser.add_argument('--enforce-absorbing-state', action='store_true', default=False,
                         help=' If True, all states after terminal state are absorbing (default: %(default)s)')
     parser.add_argument('--pcont-scale', type=float, default=10.0, help='Scale for pcont')
     parser.add_argument('--rollout-uniform-action', type=int, default=100,
