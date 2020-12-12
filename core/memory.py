@@ -5,7 +5,7 @@ from core.env import postprocess_observation, preprocess_observation_
 
 
 class ExperienceReplay:
-    def __init__(self, size, symbolic_env, observation_size, action_size, bit_depth, device):
+    def __init__(self, size, symbolic_env, observation_size, action_size, bit_depth, device, enforce_absorbing_state=False):
         self.device = device
         self.symbolic_env = symbolic_env
         self.size = size
@@ -18,6 +18,7 @@ class ExperienceReplay:
         self.full = False  # Tracks if memory has been filled/all slots are valid
         self.steps, self.episodes = 0, 0  # Tracks how much experience has been used in total
         self.bit_depth = bit_depth
+        self.enforce_absorbing_state = enforce_absorbing_state
 
     def append(self, observation, action, reward, done):
         if self.symbolic_env:
@@ -48,10 +49,21 @@ class ExperienceReplay:
         if not self.symbolic_env:
             preprocess_observation_(observations, self.bit_depth)  # Undo discretisation for visual observations
 
-        return observations.reshape(L, n, *observations.shape[1:]), \
-               self.actions[vec_idxs].reshape(L, n, -1), \
-               self.rewards[vec_idxs].reshape(L, n), \
-               self.nonterminals[vec_idxs].reshape(L, n, 1)
+        obs = observations.reshape(L, n, *observations.shape[1:])
+        actions = self.actions[vec_idxs].reshape(L, n, -1)
+        rewards = self.rewards[vec_idxs].reshape(L, n)
+        non_terminals = self.nonterminals[vec_idxs].reshape(L, n, 1)
+
+        if self.enforce_absorbing_state:
+            for row_i in range(non_terminals.shape[0]):
+                terminal_idxs = np.where(non_terminals[row_i, :, 0] == 0)[0]
+                if len(terminal_idxs) > 0:
+                    first_terminal_idx = terminal_idxs[0]
+                    rewards[row_i, first_terminal_idx + 1:] = 0.0  # absorbing reward
+                    non_terminals[row_i, first_terminal_idx + 1:, 0] = 0  # terminal states
+                    obs[row_i, first_terminal_idx + 1:, :] = obs[row_i, first_terminal_idx, :]  # terminal observations
+
+        return obs, actions, rewards, non_terminals
 
     # Returns a batch of sequence chunks uniformly sampled from the memory
     def sample(self, n, L):

@@ -1,4 +1,5 @@
 import os
+import hashlib
 
 from core.model import DreamerNetwork
 
@@ -28,10 +29,12 @@ class BaseConfig(object):
         return hparams
 
     def set_config(self, args):
-        self.args = args
 
+        self.args = args
         # paths
-        self.exp_path = os.path.join(args.results_dir, args.case, args.env, str(hash(frozenset(vars(args).items()))))
+        args_hash = hashlib.sha224(bytes(''.join([str(vars(args)[key])
+                                                  for key in sorted(vars(args).keys())]), 'ascii')).hexdigest()
+        self.exp_path = os.path.join(args.results_dir, args.case, args.env, args_hash)
         self.logs_path = os.path.join(self.exp_path, 'logs')
         self.model_path = os.path.join(self.exp_path, 'model.p')
         self.best_model_path = {'with_search': os.path.join(self.exp_path, 'with_search_best_model.p'),

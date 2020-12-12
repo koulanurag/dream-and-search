@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 
 import torch
 from torch.distributions import Normal, kl_divergence, Bernoulli
@@ -11,15 +12,14 @@ from .env import EnvBatcher
 from .memory import ExperienceReplay
 from .model import bottle
 from .planner import MPCPlanner, RolloutPlanner, MCTS
-from .utils import imagine_ahead, lambda_return, FreezeParameters
 from .test import test
-from collections import defaultdict
+from .utils import imagine_ahead, lambda_return, FreezeParameters
 from .utils import update_belief, select_action
+import wandb
 
 train_logger = logging.getLogger('train')
 test_logger = logging.getLogger('train_eval')
 count_tracker = {'updates': 0}
-import wandb
 
 
 def update_params(config, model, optimizers, D, free_nats, global_prior, writer, total_env_steps):
@@ -209,7 +209,8 @@ def train(config: BaseConfig, writer: SummaryWriter):
 
     # create memory
     D = ExperienceReplay(config.args.experience_size, config.args.symbolic_env, env.observation_size,
-                         env.action_size, config.args.bit_depth, config.args.device)
+                         env.action_size, config.args.bit_depth, config.args.device,
+                         config.args.enforce_absorbing_state)
 
     # create networks
     model = config.get_uniform_network().to(config.args.device)

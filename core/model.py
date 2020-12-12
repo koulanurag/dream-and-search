@@ -130,8 +130,10 @@ class TransitionNetwork(jit.ScriptModule):
         self.modules = [self.fc_embed_state_action, self.fc_embed_belief_prior, self.fc_state_prior,
                         self.fc_embed_belief_posterior, self.fc_state_posterior]
 
-    # Operates over (previous) state, (previous) actions, (previous) belief, (previous) nonterminals (mask), and (current) observations
-    # Diagram of expected inputs and outputs for T = 5 (-x- signifying beginning of output belief/state that gets sliced off):
+    # Operates over (previous) state, (previous) actions, (previous) belief,
+    # (previous) nonterminals (mask), and (current) observations
+    # Diagram of expected inputs and outputs for
+    # T = 5 (-x- signifying beginning of output belief/state that gets sliced off):
     # t :  0  1  2  3  4  5
     # o :    -X--X--X--X--X-
     # a : -X--X--X--X--X-
@@ -144,28 +146,24 @@ class TransitionNetwork(jit.ScriptModule):
     def forward(self, prev_state: torch.Tensor, actions: torch.Tensor, prev_belief: torch.Tensor,
                 observations: Optional[torch.Tensor] = None, nonterminals: Optional[torch.Tensor] = None) -> \
             TransitionOutput:
-        '''
+        """
         Input: init_belief, init_state:  torch.Size([50, 200]) torch.Size([50, 30])
-        Output: beliefs, prior_states, prior_means, prior_std_devs, posterior_states, posterior_means, posterior_std_devs
-                torch.Size([49, 50, 200]) torch.Size([49, 50, 30]) torch.Size([49, 50, 30]) torch.Size([49, 50, 30]) torch.Size([49, 50, 30]) torch.Size([49, 50, 30]) torch.Size([49, 50, 30])
-        '''
-        # Create lists for hidden states (cannot use single tensor as buffer because autograd won't work with inplace writes)
+        Output: beliefs, prior_states, prior_means, prior_std_devs, posterior_states, posterior_means,
+                posterior_std_devs
+                torch.Size([49, 50, 200]) torch.Size([49, 50, 30]) torch.Size([49, 50, 30]) torch.Size([49, 50, 30])
+                torch.Size([49, 50, 30]) torch.Size([49, 50, 30]) torch.Size([49, 50, 30])
+        """
+        # Create lists for hidden states (cannot use single tensor as buffer because autograd
+        # won't work with inplace writes)
         T = actions.size(0) + 1
-        beliefs, prior_states, prior_means, prior_std_devs, posterior_states, posterior_means, posterior_std_devs = [
-                                                                                                                        torch.empty(
-                                                                                                                            0)] * T, [
-                                                                                                                        torch.empty(
-                                                                                                                            0)] * T, [
-                                                                                                                        torch.empty(
-                                                                                                                            0)] * T, [
-                                                                                                                        torch.empty(
-                                                                                                                            0)] * T, [
-                                                                                                                        torch.empty(
-                                                                                                                            0)] * T, [
-                                                                                                                        torch.empty(
-                                                                                                                            0)] * T, [
-                                                                                                                        torch.empty(
-                                                                                                                            0)] * T
+        beliefs = [torch.empty(0)] * T
+        prior_states = [torch.empty(0)] * T
+        prior_means = [torch.empty(0)] * T
+        prior_std_devs = [torch.empty(0)] * T
+        posterior_states = [torch.empty(0)] * T
+        posterior_means = [torch.empty(0)] * T
+        posterior_std_devs = [torch.empty(0)] * T
+
         beliefs[0], prior_states[0], posterior_states[0] = prev_belief, prev_state, prev_state
         # Loop over time sequence
         for t in range(T - 1):
