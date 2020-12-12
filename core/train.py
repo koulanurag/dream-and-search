@@ -19,6 +19,7 @@ from .utils import update_belief, select_action
 train_logger = logging.getLogger('train')
 test_logger = logging.getLogger('train_eval')
 count_tracker = {'updates': 0}
+import wandb
 
 
 def update_params(config, model, optimizers, D, free_nats, global_prior, writer, total_env_steps):
@@ -147,9 +148,9 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
         # log distribution
         count_tracker['updates'] += 1
         _terminal_data = (1 - non_terminals).flatten().data.cpu().numpy()
-        writer.add_histogram('train_data/terminal', _terminal_data,
-                             count_tracker['updates'])
-        writer.add_scalar('train_data/terminal', sum(_terminal_data) / len(_terminal_data),
+        writer.add_histogram('train_data/terminal', _terminal_data, count_tracker['updates'])
+        wandb.log({"train_data/terminal_data": wandb.Histogram(_terminal_data)})
+        writer.add_scalar('train_data/terminal_batch_percent', sum(_terminal_data) / len(_terminal_data),
                           count_tracker['updates'])
         writer.add_histogram('train_data/reward', rewards.flatten().data.cpu().numpy(), count_tracker['updates'])
 
