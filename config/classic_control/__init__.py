@@ -7,9 +7,9 @@ ENVS = ['Pendulum-v0', 'MountainCarContinuous-v0']
 class ClassicControlConfig(BaseConfig):
     def __init__(self):
         super(ClassicControlConfig, self).__init__()
-        self.seed_steps = 1000
+        self.seed_steps = 500
         self.max_env_steps = 200000
-        self.env_itr_steps = 1000
+        self.env_itr_steps = 200
         self.test_interval_steps = 5000
 
     def new_game(self, seed=None):

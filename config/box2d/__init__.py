@@ -9,7 +9,7 @@ class Box2DConfig(BaseConfig):
         super(Box2DConfig, self).__init__()
         self.seed_steps = 1000
         self.max_env_steps = 200000
-        self.env_itr_steps = 1000
+        self.env_itr_steps = 200
         self.test_interval_steps = 5000
 
     def new_game(self, seed=None):
