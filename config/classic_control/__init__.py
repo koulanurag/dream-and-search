@@ -2,6 +2,7 @@ from core.config import BaseConfig
 from core.env import GymEnv
 
 ENVS = ['Pendulum-v0', 'MountainCarContinuous-v0']
+ACTION_SCALE = {'Pendulum-v0': 2, 'MountainCarContinuous-v0': 1}
 
 
 class ClassicControlConfig(BaseConfig):
@@ -14,7 +15,7 @@ class ClassicControlConfig(BaseConfig):
 
     def new_game(self, seed=None):
         env = GymEnv(self.args.env, self.args.symbolic_env, seed, self.args.max_episode_length,
-                     1, self.args.bit_depth)
+                     1, self.args.bit_depth, action_scale=ACTION_SCALE[self.args.env])
         return env
 
 
