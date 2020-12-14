@@ -73,7 +73,7 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
         pcont_loss = 0
         if config.args.pcont:
             pcont_pred = bottle(model.pcont, (transition_output.beliefs, transition_output.posterior_states))
-            pcont_dist = Bernoulli(pcont_pred)
+            pcont_dist = Bernoulli(probs=pcont_pred)
             pcont_target = config.args.discount * non_terminals[:-1].squeeze(-1)
             pcont_loss = - pcont_dist.log_prob(pcont_target).mean(dim=(0, 1))
             pcont_loss *= config.args.pcont_scale
@@ -97,10 +97,10 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
             actor_states = transition_output.posterior_states.detach()
             actor_beliefs = transition_output.beliefs.detach()
 
-        with FreezeParameters([model.transition, model.encoder, model.reward, model.observation]):
+        with FreezeParameters([model.transition, model.encoder, model.reward, model.observation, model.pcont]):
             imagination_output = imagine_ahead(actor_states, actor_beliefs, model.actor, model.transition,
                                                config.args.planning_horizon)
-        with FreezeParameters([model.transition, model.encoder, model.reward, model.observation]):
+        with FreezeParameters([model.transition, model.encoder, model.reward, model.observation, model.pcont]):
             with FreezeParameters([model.value]):
                 imged_reward = bottle(model.reward, (imagination_output.belief, imagination_output.prior_state))
                 value_pred = bottle(model.value, (imagination_output.belief, imagination_output.prior_state))
