@@ -148,7 +148,7 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
 
         # log distribution
         count_tracker['updates'] += 1
-        data_distribution['terminal'].append((1 - non_terminals).flatten().data.cpu().numpy().tolist())
+        data_distribution['terminal']+= (1 - non_terminals).flatten().data.cpu().numpy().tolist()
 
     losses = {k: v / config.args.collect_interval for k, v in losses.items()}
 
