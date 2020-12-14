@@ -25,6 +25,7 @@ count_tracker = {'updates': 0}
 def update_params(config, model, optimizers, D, free_nats, global_prior, writer, total_env_steps):
     dynamics_optimizer, value_optimizer, policy_optimizer = optimizers
     losses = defaultdict(lambda: 0)
+    data_distribution = {'reward': [], 'terminal': []}
 
     for update_step in range(config.args.collect_interval):
         # sample batch
@@ -147,12 +148,7 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
 
         # log distribution
         count_tracker['updates'] += 1
-        _terminal_data = (1 - non_terminals).flatten().data.cpu().numpy()
-        writer.add_histogram('train_data/terminal', _terminal_data, count_tracker['updates'])
-        wandb.log({"train_data/terminal_data": wandb.Histogram(_terminal_data)})
-        writer.add_scalar('train_data/terminal_batch_percent', sum(_terminal_data) / len(_terminal_data),
-                          count_tracker['updates'])
-        writer.add_histogram('train_data/reward', rewards.flatten().data.cpu().numpy(), count_tracker['updates'])
+        data_distribution['terminal'].append((1 - non_terminals).flatten().data.cpu().numpy().tolist())
 
     losses = {k: v / config.args.collect_interval for k, v in losses.items()}
 
@@ -162,8 +158,14 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
     writer.add_scalar('train/obs_loss', losses['obs'], total_env_steps)
     writer.add_scalar('train/reward_loss', losses['reward'], total_env_steps)
     writer.add_scalar('train/kl_loss', losses['kl'], total_env_steps)
+    writer.add_scalar('train/network_updates', count_tracker['updates'], total_env_steps)
     if config.args.pcont:
         writer.add_scalar('train/pcont_loss', losses['pcont'], total_env_steps)
+
+    # log sampling information of data.
+    writer.add_scalar('train_data/terminal_batch_percent',
+                      sum(data_distribution['terminal']) / len(data_distribution['terminal']),
+                      total_env_steps)
 
     _msg = 'env steps #{:<10}'.format(total_env_steps)
     _msg += 'actor loss:{:<8.3f} value loss: {:<8.3f} '.format(losses['actor'], losses['value'])
