@@ -133,8 +133,10 @@ if __name__ == '__main__':
     try:
         if args.opr == 'train':
             if args.use_wandb:
+                os.makedirs(args.wandb_dir, exist_ok=True)
                 os.environ['WANDB_DIR'] = args.wandb_dir
                 import wandb
+
                 wandb.init(dir=args.wandb_dir, group=args.case + ':' + args.env, project="dream-and-search",
                            config=run_config.get_hparams(), sync_tensorboard=True)
 
