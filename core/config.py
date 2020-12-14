@@ -19,7 +19,8 @@ class BaseConfig(object):
                               embedding_size=200,
                               action_size=self.action_size,
                               sample_random_action_fn=self.sample_random_action,
-                              symbolic=self.args.symbolic_env)
+                              symbolic=self.args.symbolic_env,
+                              enforce_absorbing_state=self.args.enforce_absorbing_state)
 
     def get_hparams(self):
         hparams = {k: v for k, v in vars(self.args).items() if v is not None}

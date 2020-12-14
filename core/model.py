@@ -117,8 +117,9 @@ class TransitionNetwork(jit.ScriptModule):
     __constants__ = ['min_std_dev']
 
     def __init__(self, belief_size, state_size, action_size, hidden_size, embedding_size, activation_function='relu',
-                 min_std_dev=0.1):
+                 min_std_dev=0.1, enforce_absorbing_state=False):
         super().__init__()
+        self.enforce_absorbing_state = enforce_absorbing_state
         self.act_fn = getattr(F, activation_function)
         self.min_std_dev = min_std_dev
         self.fc_embed_state_action = nn.Linear(state_size + action_size, belief_size)
@@ -170,7 +171,8 @@ class TransitionNetwork(jit.ScriptModule):
             # Select appropriate previous state
             _state = prior_states[t] if observations is None else posterior_states[t]
             # Mask if previous transition was terminal
-            _state = _state if nonterminals is None else _state * nonterminals[t]
+            if not self.enforce_absorbing_state:
+                _state = _state if nonterminals is None else _state * nonterminals[t]
 
             # Compute belief (deterministic hidden state)
             hidden = self.act_fn(self.fc_embed_state_action(torch.cat([_state, actions[t]], dim=1)))
@@ -302,7 +304,7 @@ class PcontNetwork(jit.ScriptModule):
 
 class DreamerNetwork(jit.ScriptModule):
     def __init__(self, obs_size, belief_size, state_size, hidden_size, embedding_size, action_size,
-                 sample_random_action_fn, symbolic: bool):
+                 sample_random_action_fn, symbolic: bool, enforce_absorbing_state: bool):
         super(DreamerNetwork, self).__init__()
 
         self.belief_size = belief_size
@@ -321,7 +323,8 @@ class DreamerNetwork(jit.ScriptModule):
             self.observation = VisualObservationNetwork(belief_size, state_size, embedding_size,
                                                         activation_function='relu')
 
-        self.transition = TransitionNetwork(belief_size, state_size, action_size, hidden_size, embedding_size)
+        self.transition = TransitionNetwork(belief_size, state_size, action_size, hidden_size, embedding_size,
+                                            enforce_absorbing_state=enforce_absorbing_state)
         self.reward = RewardNetwork(self.belief_size, self.state_size, hidden_size)
         self.actor = ActorNetwork(self.belief_size, self.state_size, hidden_size, action_size, sample_random_action_fn)
         self.value = DenseNetwork(self.belief_size, self.state_size, hidden_size)
