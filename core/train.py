@@ -148,7 +148,7 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
 
         # log distribution
         count_tracker['updates'] += 1
-        data_distribution['terminal']+= (1 - non_terminals).flatten().data.cpu().numpy().tolist()
+        data_distribution['terminal'] += (1 - non_terminals).flatten().data.cpu().numpy().tolist()
 
     losses = {k: v / config.args.collect_interval for k, v in losses.items()}
 
@@ -343,7 +343,7 @@ def train(config: BaseConfig, writer: SummaryWriter):
 
             if config.args.use_wandb:
                 import wandb
-                wandb.save(config.checkpoint_path)
+                wandb.save(config.checkpoint_path, policy='now')
 
         # check if max. env steps reached.
         if total_env_steps >= config.max_env_steps:

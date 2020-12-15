@@ -72,6 +72,10 @@ if __name__ == '__main__':
                         help='Checkpoint interval (episodes)')
     parser.add_argument('--checkpoint-experience', action='store_true', help='Checkpoint experience replay')
     parser.add_argument('--render', action='store_true', help='Render environment')
+    parser.add_argument('--restore-model-from-wandb', action='store_true', default=False,
+                        help='restore model from wandb run. (default: %(default)s)')
+    parser.add_argument('--wandb-run-id', type=str,
+                        help='Wandb run if for restoring model (default: %(default)s)')
     parser.add_argument('--use-wandb', action='store_true', default=False,
                         help='Use Weight and bias visualization lib for logging. (default: %(default)s)')
     parser.add_argument('--pcont', action='store_true', default=False,
@@ -149,6 +153,12 @@ if __name__ == '__main__':
                 wandb.join()
         elif args.opr == 'test':
             model_path = run_config.model_path
+            if args.restore_model_from_wandb:
+                assert args.wandb_run_id is not None, 'wandb run id cannot be {}'.format(args.wandb_run_id)
+                import wandb
+
+                wandb.restore(model_path, args.wandb_run_id)
+
             assert os.path.exists(model_path), 'model not found: {}'.format(model_path)
 
             model = run_config.get_uniform_network()
