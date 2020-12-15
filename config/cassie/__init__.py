@@ -1,7 +1,8 @@
 from core.config import BaseConfig
 from core.env import GymEnv
 
-ENVS = ['']
+ENVS = ['Cassie-v0', 'Cassie-v1']
+ACTION_SCALE = {_: 3 for _ in ENVS}
 
 
 class CassieConfig(BaseConfig):
@@ -15,7 +16,7 @@ class CassieConfig(BaseConfig):
     def new_game(self, seed=None):
         import gym_cassie
         env = GymEnv(self.args.env, self.args.symbolic_env, seed, self.args.max_episode_length,
-                     1, self.args.bit_depth, action_scale=3)
+                     1, self.args.bit_depth, action_scale=ACTION_SCALE[self.args.env])
         return env
 
 

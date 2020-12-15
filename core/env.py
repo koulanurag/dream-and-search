@@ -33,7 +33,7 @@ def _images_to_observation(images, bit_depth):
     return images.unsqueeze(dim=0)  # Add batch dimension
 
 
-class GymEnv():
+class GymEnv:
     def __init__(self, env, symbolic, seed, max_episode_length, action_repeat, bit_depth, action_scale=1):
         import gym
         self.symbolic = symbolic
