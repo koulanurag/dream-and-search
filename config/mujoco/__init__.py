@@ -15,7 +15,7 @@ class MujocoConfig(BaseConfig):
         self.test_interval_steps = 10000
 
     def new_game(self, seed=None):
-        env = GymEnv(self.args.env, self.args.symbolic_env, seed, self.args.max_episode_length,
+        env = GymEnv(self.args.env, self.args.symbolic_env, seed, 2000,
                      1, self.args.bit_depth)
         return env
 
