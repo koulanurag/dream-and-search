@@ -22,7 +22,7 @@ if __name__ == '__main__':
     parser.add_argument('--no-cuda', action='store_true', help='Disable CUDA')
     parser.add_argument('--env', type=str, default='cartpole-balance', help='Gym/Control Suite environment')
     parser.add_argument('--case', type=str, default='dm_control',
-                        choices=['dm_control', 'cassie', 'box2d', 'classic_control','mujoco'],
+                        choices=['dm_control', 'cassie', 'box2d', 'classic_control', 'mujoco'],
                         help="It's used for switching between different domains(default: %(default)s)")
     parser.add_argument('--results-dir', type=Path, default=os.path.join(os.getcwd(), 'results'),
                         help="Directory Path to store results (default: %(default)s)")
@@ -143,8 +143,8 @@ if __name__ == '__main__':
                 os.environ['WANDB_DIR'] = str(args.wandb_dir)
                 import wandb
 
-                wandb.init(dir=args.wandb_dir, group=args.case + ':' + args.env, project="dream-and-search",
-                           config=run_config.get_hparams(), sync_tensorboard=True)
+                wandb.init(job_type='train', dir=args.wandb_dir, group=args.case + ':' + args.env,
+                           project="dream-and-search", config=run_config.get_hparams(), sync_tensorboard=True)
 
             summary_writer = SummaryWriter(run_config.logs_path, flush_secs=60 * 1)  # flush every 1 minutes
             train(run_config, summary_writer)
@@ -159,13 +159,15 @@ if __name__ == '__main__':
                 assert args.wandb_run_id is not None, 'wandb run id cannot be {}'.format(args.wandb_run_id)
                 import wandb
 
-                wandb.restore(model_path, args.wandb_run_id)
+                root, name = os.path.split(run_config.checkpoint_path)
+                wandb.restore(name=name, run_path=args.wandb_run_id, replace=True, root=root)
 
-            assert os.path.exists(model_path), 'model not found: {}'.format(model_path)
+            assert os.path.exists(run_config.checkpoint_path), 'model not found: {}'.format(run_config.checkpoint_path)
 
             model = run_config.get_uniform_network()
             model = model.to('cpu')
-            model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+            checkpoint = torch.load(run_config.checkpoint_path, map_location=torch.device('cpu'))
+            model.load_state_dict(checkpoint['model'])
             env_batch = EnvBatcher(run_config.new_game, args.test_episodes)
 
             base_policy = model.actor  # dreamer
