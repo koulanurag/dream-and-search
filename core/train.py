@@ -344,6 +344,7 @@ def train(config: BaseConfig, writer: SummaryWriter):
             if config.args.use_wandb:
                 import wandb
                 wandb.save(config.checkpoint_path, policy='now')
+                wandb.save(config.model_path, policy='now')
 
         # check if max. env steps reached.
         if total_env_steps >= config.max_env_steps:
