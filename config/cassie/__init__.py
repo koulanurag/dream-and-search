@@ -3,6 +3,7 @@ from core.env import GymEnv
 
 ENVS = ['Cassie-v0', 'Cassie-v1']
 ACTION_SCALE = {_: 3 for _ in ENVS}
+import numpy as np
 
 
 class CassieConfig(BaseConfig):
@@ -17,6 +18,9 @@ class CassieConfig(BaseConfig):
         import gym_cassie
         env = GymEnv(self.args.env, self.args.symbolic_env, seed, self.args.max_episode_length,
                      1, self.args.bit_depth, action_scale=ACTION_SCALE[self.args.env])
+
+        env._env.action_space.low = -1 * np.array(env.action_space.low.shape)
+        env._env.action_space.high = np.array(env.action_space.high.shape)
         return env
 
 
