@@ -19,8 +19,11 @@ class CassieConfig(BaseConfig):
         env = GymEnv(self.args.env, self.args.symbolic_env, seed, self.args.max_episode_length,
                      1, self.args.bit_depth, action_scale=ACTION_SCALE[self.args.env])
 
-        env._env.action_space.low = -1 * np.ones(env.action_space.low.shape)
-        env._env.action_space.high = np.ones(env.action_space.high.shape)
+        from gym import spaces
+        env._env.action_space = spaces.Box(low=-1 * np.ones(env.action_space.low.shape),
+                                           high=np.ones(env.action_space.high.shape),
+                                           dtype=np.float32)
+
         return env
 
 
