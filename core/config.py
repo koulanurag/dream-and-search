@@ -33,8 +33,9 @@ class BaseConfig(object):
 
         self.args = args
         # paths
-        args_hash = hashlib.sha224(bytes(''.join([str(vars(args)[key])
-                                                  for key in sorted(vars(args).keys())]), 'ascii')).hexdigest()
+        args_hash = hashlib.sha224(bytes(''.join([str(vars(args)[key]) for key in sorted(vars(args).keys())
+                                                  if key not in ['results_dir', 'wandb_dir', 'opr']]),
+                                         'ascii')).hexdigest()
         self.exp_path = os.path.join(args.results_dir, args.case, args.env, args_hash)
         self.logs_path = os.path.join(self.exp_path, 'logs')
         self.model_path = os.path.join(self.exp_path, 'model.p')

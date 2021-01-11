@@ -112,7 +112,7 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
 
         returns = lambda_return(imged_reward, value_pred, pcont_pred, bootstrap=value_pred[-1],
                                 lambda_=config.args.disclam)
-        policy_loss = -torch.mean(returns)  # Todo : Do we need to multiply with discount?
+        policy_loss = -torch.mean(returns)
 
         # Update policy parameters
         policy_optimizer.zero_grad()
@@ -250,9 +250,8 @@ def train(config: BaseConfig, writer: SummaryWriter):
     elif 'mcts' in config.args.search_mode:
         planner = MCTS(config, model, exploration=True, progressive='progressive' in config.args.search_mode)
         test_planner = MCTS(config, test_model, exploration=False, progressive='progressive' in config.args.search_mode)
-        pass
     else:
-        raise NotImplementedError
+        raise ValueError('--search-mode {} is not implemented'.format(config.args.search_mode))
 
     # training constraints
     free_nats = torch.full((1,), config.args.free_nats, device=config.args.device)
@@ -330,7 +329,6 @@ def train(config: BaseConfig, writer: SummaryWriter):
         # save model
         if (episodes % config.args.checkpoint_interval == 0) or total_env_steps >= config.max_env_steps:
             assert '.p' in config.model_path
-            torch.save(model.state_dict(), config.model_path.replace('.p', '_{}.p'.format(total_env_steps)))
             torch.save(model.state_dict(), config.model_path)
             torch.save({'model': model.state_dict(),
                         'dynamics_optimizer': dynamics_optimizer.state_dict(),
