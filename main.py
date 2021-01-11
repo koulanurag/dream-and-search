@@ -116,6 +116,8 @@ if __name__ == '__main__':
         from config.box2d import run_config
     elif args.case == 'cassie':
         from config.cassie import run_config
+    elif args.case == 'cassie-v2':
+        from config.cassie_v2 import run_config
     elif args.case == 'dm_control':
         from config.dm_control import run_config
     elif args.case == 'mujoco':
