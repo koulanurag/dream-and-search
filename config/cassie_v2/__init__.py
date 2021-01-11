@@ -27,7 +27,7 @@ class CassieConfigV2(BaseConfig):
     def __init__(self):
         super(CassieConfigV2, self).__init__()
         self.seed_steps = 1000
-        self.max_env_steps = 500000
+        self.max_env_steps = 2000000
         self.env_itr_steps = 200
         self.test_interval_steps = 2500
 
