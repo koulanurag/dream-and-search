@@ -267,8 +267,8 @@ def train(config: BaseConfig, writer: SummaryWriter):
 
     while True:
         # # Learning
-        # if len(D) >= (config.args.batch_size * config.args.chunk_size) and total_env_steps > config.seed_steps:
-        #     update_params(config, model, optimizer, D, free_nats, global_prior, writer, total_env_steps)
+        if len(D) >= (config.args.batch_size * config.args.chunk_size) and total_env_steps > config.seed_steps:
+            update_params(config, model, optimizer, D, free_nats, global_prior, writer, total_env_steps)
 
         # Environment Interaction
         with torch.no_grad():
