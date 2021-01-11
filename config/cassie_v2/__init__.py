@@ -5,9 +5,11 @@ ENVS = ['Cassie-v2']
 ACTION_SCALE = {_: 3 for _ in ENVS}
 import numpy as np
 
+import torch
+
 
 class CassieV2GymEnv(GymEnv):
-    def __init__(self, env, symbolic, seed, max_episode_length, action_repeat, bit_depth, action_scale=1):
+    def __init__(self, env, symbolic, seed, max_episode_length, action_repeat, bit_depth):
         from .cassie import CassieEnv_v2
         from gym import spaces
 
@@ -17,10 +19,13 @@ class CassieV2GymEnv(GymEnv):
         self.max_episode_length = max_episode_length
         self.action_repeat = action_repeat
         self.bit_depth = bit_depth
-        self.action_scale = action_scale
         self._env.action_space = spaces.Box(low=-1 * np.ones(self._env.action_space.shape),
                                             high=np.ones(self._env.action_space.shape),
                                             dtype=np.float32)
+
+    # Sample an action randomly from a uniform distribution over all valid actions
+    def sample_random_action(self):
+        return torch.from_numpy(self._env.action_space.sample()) * self.action_scale
 
 
 class CassieConfigV2(BaseConfig):
@@ -33,7 +38,7 @@ class CassieConfigV2(BaseConfig):
 
     def new_game(self, seed=None):
         env = CassieV2GymEnv(self.args.env, self.args.symbolic_env, seed, self.args.max_episode_length,
-                             1, self.args.bit_depth, action_scale=ACTION_SCALE[self.args.env])
+                             1, self.args.bit_depth)
         return env
 
 

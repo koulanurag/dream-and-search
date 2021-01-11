@@ -47,9 +47,7 @@ class RolloutPlanner:
         else:
             pcont_pred = self.discount * torch.ones_like(imged_reward)
 
-        returns = lambda_return(imged_reward, value_pred, pcont_pred,
-                                bootstrap=value_pred[-1],
-                                lambda_=self.disclam)
+        returns = lambda_return(imged_reward, value_pred, pcont_pred, bootstrap=value_pred[-1], lambda_=self.disclam)
 
         # get value of root childs
         q_values = returns[0, :].reshape((batch_size, total_actions))

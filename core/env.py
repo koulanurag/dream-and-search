@@ -34,7 +34,7 @@ def _images_to_observation(images, bit_depth):
 
 
 class GymEnv:
-    def __init__(self, env, symbolic, seed, max_episode_length, action_repeat, bit_depth, action_scale=1):
+    def __init__(self, env, symbolic, seed, max_episode_length, action_repeat, bit_depth):
         import gym
         self.symbolic = symbolic
         self._env = gym.make(env)
@@ -42,7 +42,6 @@ class GymEnv:
         self.max_episode_length = max_episode_length
         self.action_repeat = action_repeat
         self.bit_depth = bit_depth
-        self.action_scale = action_scale
 
     def reset(self):
         self.t = 0  # Reset internal timer
@@ -53,7 +52,7 @@ class GymEnv:
             return _images_to_observation(self._env.render(mode='rgb_array'), self.bit_depth)
 
     def step(self, action):
-        action = action.detach().numpy() * self.action_scale
+        action = action.detach().numpy()
         reward = 0
         for k in range(self.action_repeat):
             state, reward_k, done, _ = self._env.step(action)

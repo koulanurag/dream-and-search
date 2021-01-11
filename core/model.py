@@ -246,7 +246,7 @@ class DenseNetwork(jit.ScriptModule):
 
 class ActorNetwork(jit.ScriptModule):
     def __init__(self, belief_size, state_size, hidden_size, action_size, sample_random_action_fn, dist='tanh_normal',
-                 activation_function='elu', min_std=1e-4, init_std=5.0, mean_scale=5.0):
+                 activation_function='elu', min_std=1e-4, init_std=5.0, mean_scale=5.0, action_scale=1.0):
         super().__init__()
         self.act_fn = getattr(F, activation_function)
         self.fc1 = nn.Linear(belief_size + state_size, hidden_size)
@@ -261,6 +261,7 @@ class ActorNetwork(jit.ScriptModule):
         self._init_std = torch.tensor(init_std)
         self._mean_scale = mean_scale
         self._sample_random_action = sample_random_action_fn
+        self.action_scale = action_scale
 
     @jit.script_method
     def forward(self, belief, state):
@@ -284,9 +285,9 @@ class ActorNetwork(jit.ScriptModule):
         dist = torch.distributions.Independent(dist, 1)
         dist = SampleDist(dist)
         if det:
-            return dist.mode()
+            return dist.mode() * self.action_scale
         else:
-            return dist.rsample()
+            return dist.rsample() * self.action_scale
 
     def sample_random_action(self, batch=1):
         return torch.FloatTensor([self._sample_random_action().numpy() for _ in range(batch)])
@@ -304,7 +305,7 @@ class PcontNetwork(jit.ScriptModule):
 
 class DreamerNetwork(jit.ScriptModule):
     def __init__(self, obs_size, belief_size, state_size, hidden_size, embedding_size, action_size,
-                 sample_random_action_fn, symbolic: bool, enforce_absorbing_state: bool):
+                 sample_random_action_fn, symbolic: bool, enforce_absorbing_state: bool, action_scale=1.0):
         super(DreamerNetwork, self).__init__()
 
         self.belief_size = belief_size
@@ -326,7 +327,8 @@ class DreamerNetwork(jit.ScriptModule):
         self.transition = TransitionNetwork(belief_size, state_size, action_size, hidden_size, embedding_size,
                                             enforce_absorbing_state=enforce_absorbing_state)
         self.reward = RewardNetwork(self.belief_size, self.state_size, hidden_size)
-        self.actor = ActorNetwork(self.belief_size, self.state_size, hidden_size, action_size, sample_random_action_fn)
+        self.actor = ActorNetwork(self.belief_size, self.state_size, hidden_size, action_size, sample_random_action_fn,
+                                  action_scale=action_scale)
         self.value = DenseNetwork(self.belief_size, self.state_size, hidden_size)
         self.pcont = PcontNetwork(self.belief_size, self.state_size, hidden_size)
 

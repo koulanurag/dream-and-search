@@ -17,7 +17,7 @@ class CassieConfig(BaseConfig):
     def new_game(self, seed=None):
         import gym_cassie
         env = GymEnv(self.args.env, self.args.symbolic_env, seed, self.args.max_episode_length,
-                     1, self.args.bit_depth, action_scale=ACTION_SCALE[self.args.env])
+                     1, self.args.bit_depth)
 
         from gym import spaces
         env._env.action_space = spaces.Box(low=-1 * np.ones(env.action_space.low.shape),

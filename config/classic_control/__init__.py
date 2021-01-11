@@ -15,8 +15,12 @@ class ClassicControlConfig(BaseConfig):
 
     def new_game(self, seed=None):
         env = GymEnv(self.args.env, self.args.symbolic_env, seed, self.args.max_episode_length,
-                     1, self.args.bit_depth, action_scale=ACTION_SCALE[self.args.env])
+                     1, self.args.bit_depth)
         return env
+
+    @property
+    def action_scale(self):
+        return ACTION_SCALE[self.args.env]
 
 
 run_config = ClassicControlConfig()
