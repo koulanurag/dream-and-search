@@ -81,7 +81,10 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
 
         # Update dynamics parameters
         dynamics_optimizer.zero_grad()
-        (dynamics_loss + pcont_loss).backward()
+        if config.args.pcont:
+            (dynamics_loss + pcont_loss).backward()
+        else:
+            dynamics_loss.backward()
         torch.nn.utils.clip_grad_norm_(model.transition.parameters(), config.args.grad_clip_norm, norm_type=2)
         torch.nn.utils.clip_grad_norm_(model.reward.parameters(), config.args.grad_clip_norm, norm_type=2)
         torch.nn.utils.clip_grad_norm_(model.observation.parameters(), config.args.grad_clip_norm, norm_type=2)
