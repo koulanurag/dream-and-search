@@ -26,7 +26,7 @@ def test(config, env, model, planner, mode, render=False):
         # update belief and determine action
         belief, posterior_state = update_belief(model.transition, model.encoder, belief, posterior_state,
                                                 action, observation.to(device=config.args.device))
-        action = select_action(config, env, planner, belief, posterior_state, mode=mode)
+        action = select_action(config, env, planner, belief, posterior_state, mode=mode, explore=False)
 
         # step in the environment
         for _ in range(config.args.action_repeat):
