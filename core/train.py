@@ -71,7 +71,7 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
         dynamics_loss = observation_loss + reward_loss + kl_loss
 
         # discount loss
-        pcont_loss = 0
+        pcont_loss = torch.tensor([0])
         if config.args.pcont:
             pcont_pred = bottle(model.pcont, (transition_output.beliefs, transition_output.posterior_states))
             pcont_dist = Bernoulli(probs=pcont_pred)
