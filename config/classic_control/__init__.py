@@ -3,7 +3,7 @@ from core.env import GymEnv
 
 ENVS = ['Pendulum-v0', 'MountainCarContinuous-v0']
 ACTION_SCALE = {'Pendulum-v0': 2, 'MountainCarContinuous-v0': 1}
-ACTION_REPEAT = {'Pendulum-v0': 1, 'MountainCarContinuous-v0': 8}
+ACTION_REPEAT = {'Pendulum-v0': 1, 'MountainCarContinuous-v0': 1}
 
 
 class ClassicControlConfig(BaseConfig):

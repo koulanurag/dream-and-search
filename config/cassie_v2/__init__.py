@@ -41,5 +41,9 @@ class CassieConfigV2(BaseConfig):
                              1, self.args.bit_depth)
         return env
 
+    @property
+    def action_scale(self):
+        return ACTION_SCALE[self.args.env]
+
 
 run_config = CassieConfigV2()

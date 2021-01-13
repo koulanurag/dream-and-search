@@ -14,9 +14,14 @@ class Box2DConfig(BaseConfig):
         self.test_interval_steps = 5000
 
     def new_game(self, seed=None):
+        assert self.args.env in ENVS
         env = GymEnv(self.args.env, self.args.symbolic_env, seed, self.args.max_episode_length,
                      1, self.args.bit_depth)
         return env
+
+    @property
+    def action_scale(self):
+        return ACTION_SCALE[self.args.env]
 
 
 run_config = Box2DConfig()
