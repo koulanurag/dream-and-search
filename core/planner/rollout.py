@@ -2,6 +2,7 @@ import torch
 
 from ..model import bottle
 from ..utils import imagine_ahead, lambda_return
+from torch.nn import functional as F
 
 
 # Rollout with a proposal policy.
@@ -47,7 +48,7 @@ class RolloutPlanner:
         else:
             pcont_pred = self.discount * torch.ones_like(imged_reward)
 
-        returns = lambda_return(imged_reward, value_pred, pcont_pred, bootstrap=value_pred[-1], lambda_=self.disclam)
+        returns = lambda_return(imged_reward, value_pred, pcont_pred, bootstrap=value_pred[-1], lambda_=1)
 
         # get value of root childs
         q_values = returns[0, :].reshape((batch_size, total_actions))
@@ -59,4 +60,11 @@ class RolloutPlanner:
         greedy_actions_idx = torch.argmax(q_values, dim=1)
         greedy_actions_idx = greedy_actions_idx.view(-1, 1, 1).expand(root_actions.size(0), 1, root_actions.size(2))
         greedy_action = root_actions.gather(1, greedy_actions_idx).squeeze(1)
+
+        # error = F.mse_loss(greedy_action[0], root_actions[0, 1]).item()
+        # if error > 10:
+        #     print('abc')
+        #     pass
+        # print(round(greedy_action[0].data.numpy().item(), 3), ",      ",
+        #       round(root_actions[0, 1].data.numpy().item(), 3), ",        ", error)
         return greedy_action

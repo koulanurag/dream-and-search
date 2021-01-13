@@ -82,8 +82,9 @@ def imagine_ahead(prev_state, prev_belief, policy, transition_model, planning_ho
 
         if t == 0 and root_uniform_action_mask is not None:
             _actions = policy.get_action(beliefs[t].detach(), _state.detach())
-            uniform_actions = policy.sample_random_action(root_uniform_action_mask.sum()).to(_state.device)
-            _actions[root_uniform_action_mask.bool()] = uniform_actions
+            if root_uniform_action_mask.sum() > 0:
+                uniform_actions = policy.sample_random_action(root_uniform_action_mask.sum()).to(_state.device)
+                _actions[root_uniform_action_mask.bool()] = uniform_actions
         else:
             _actions = policy.get_action(beliefs[t].detach(), _state.detach(), det=det)
         actions[t] = _actions

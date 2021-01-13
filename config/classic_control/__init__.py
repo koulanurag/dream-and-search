@@ -3,6 +3,7 @@ from core.env import GymEnv
 
 ENVS = ['Pendulum-v0', 'MountainCarContinuous-v0']
 ACTION_SCALE = {'Pendulum-v0': 2, 'MountainCarContinuous-v0': 1}
+ACTION_REPEAT = {'Pendulum-v0': 1, 'MountainCarContinuous-v0': 8}
 
 
 class ClassicControlConfig(BaseConfig):
@@ -14,8 +15,9 @@ class ClassicControlConfig(BaseConfig):
         self.test_interval_steps = 5000
 
     def new_game(self, seed=None):
+        assert self.args.env in ENVS
         env = GymEnv(self.args.env, self.args.symbolic_env, seed, self.args.max_episode_length,
-                     1, self.args.bit_depth)
+                     ACTION_REPEAT[self.args.env], self.args.bit_depth)
         return env
 
     @property

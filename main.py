@@ -22,7 +22,7 @@ if __name__ == '__main__':
     parser.add_argument('--no-cuda', action='store_true', help='Disable CUDA')
     parser.add_argument('--env', type=str, default='cartpole-balance', help='Gym/Control Suite environment')
     parser.add_argument('--case', type=str, default='dm_control',
-                        choices=['dm_control', 'cassie','cassie-v2', 'box2d', 'classic_control', 'mujoco'],
+                        choices=['dm_control', 'cassie', 'cassie-v2', 'box2d', 'classic_control', 'mujoco'],
                         help="It's used for switching between different domains(default: %(default)s)")
     parser.add_argument('--results-dir', type=Path, default=os.path.join(os.getcwd(), 'results'),
                         help="Directory Path to store results (default: %(default)s)")
@@ -179,13 +179,14 @@ if __name__ == '__main__':
                 planner = RolloutPlanner(run_config.args.rollout_proposal_action,
                                          run_config.args.rollout_uniform_action,
                                          run_config.args.planning_horizon, model, run_config.args.discount,
-                                         run_config.args.disclam)
+                                         run_config.args.disclam, run_config.args.pcont)
             elif run_config.args.search_mode == 'mpc':
                 planner = MPCPlanner(run_config.action_size, run_config.args.planning_horizon,
                                      run_config.args.optimisation_iters, run_config.args.candidates,
                                      run_config.args.top_candidates, model.transition, model.reward)
             elif 'mcts' in run_config.args.search_mode:
-                planner = MCTS(run_config, model, exploration=False, progressive='progressive')
+                planner = MCTS(run_config, model, exploration=False,
+                               progressive='progressive' in run_config.args.search_mode)
             else:
                 raise NotImplementedError
 
