@@ -5,6 +5,8 @@ ENVS = ['Ant-v2', 'HalfCheetah-v2', 'Hopper-v2', 'Humanoid-v2',
         'HumanoidStandup-v2', 'InvertedDoublePendulum-v2',
         'InvertedPendulum-v2', 'Reacher-v2', 'Swimmer-v2', 'Walker2d-v2']
 
+ACTION_SCALE = {_: 1 for _ in ENVS}
+
 
 class MujocoConfig(BaseConfig):
     def __init__(self):
@@ -18,6 +20,10 @@ class MujocoConfig(BaseConfig):
         env = GymEnv(self.args.env, self.args.symbolic_env, seed, 2000,
                      1, self.args.bit_depth)
         return env
+
+    @property
+    def action_scale(self):
+        return ACTION_SCALE[self.args.env]
 
 
 run_config = MujocoConfig()
