@@ -343,20 +343,20 @@ def train(config: BaseConfig, writer: SummaryWriter):
                     _msg = _msg.format(total_env_steps, episode_reward, episode_steps, episodes)
                     train_logger.info(_msg)
 
-                # save model
-                if (episodes % config.args.checkpoint_interval == 0) or total_env_steps >= config.max_env_steps:
-                    print('model saved!')
-                    assert '.p' in config.model_path
-                    torch.save(model.state_dict(), config.model_path)
-                    torch.save({'model': model.state_dict(),
-                                'dynamics_optimizer': dynamics_optimizer.state_dict(),
-                                'value_optimizer': value_optimizer.state_dict(),
-                                'policy_optimizer': policy_optimizer.state_dict()},
-                               config.checkpoint_path)
+                    # save model
+                    if (episodes % config.args.checkpoint_interval == 0) or total_env_steps >= config.max_env_steps:
+                        print('model saved!')
+                        assert '.p' in config.model_path
+                        torch.save(model.state_dict(), config.model_path)
+                        torch.save({'model': model.state_dict(),
+                                    'dynamics_optimizer': dynamics_optimizer.state_dict(),
+                                    'value_optimizer': value_optimizer.state_dict(),
+                                    'policy_optimizer': policy_optimizer.state_dict()},
+                                   config.checkpoint_path)
 
-                    if config.args.checkpoint_experience:
-                        # Warning: will fail with MemoryError with large memory sizes
-                        torch.save(D, config.experiance_path)
+                        if config.args.checkpoint_experience:
+                            # Warning: will fail with MemoryError with large memory sizes
+                            torch.save(D, config.experiance_path)
 
         # check if max. env steps reached.
         if total_env_steps >= config.max_env_steps:
