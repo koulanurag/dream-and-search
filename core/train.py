@@ -332,6 +332,7 @@ def train(config: BaseConfig, writer: SummaryWriter):
 
                 # save model
                 if (episodes % config.args.checkpoint_interval == 0) or total_env_steps >= config.max_env_steps:
+                    print('model saved!')
                     assert '.p' in config.model_path
                     torch.save(model.state_dict(), config.model_path)
                     torch.save({'model': model.state_dict(),
