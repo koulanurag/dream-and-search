@@ -269,7 +269,7 @@ def train(config: BaseConfig, writer: SummaryWriter):
     best_test_score = {'score': {'with_search': float('-inf'), 'no_search': float('-inf')}}
 
     while True:
-        # # Learning
+        # Learning
         if len(D) >= (config.args.batch_size * config.args.chunk_size) and total_env_steps > config.seed_steps:
             update_params(config, model, optimizer, D, free_nats, global_prior, writer, total_env_steps)
 
@@ -317,36 +317,37 @@ def train(config: BaseConfig, writer: SummaryWriter):
                 D.append(observation, step_action, step_reward, done)
                 observation = next_observation
 
-        # ################
-        # Log & save model
-        # ################
-        if done:
-            writer.add_scalar('train/episode_reward', episode_reward, total_env_steps)
-            writer.add_scalar('train/episode_steps', episode_steps, total_env_steps)
-            writer.add_scalar('train/episodes', episodes, total_env_steps)
-            writer.add_scalar('train/replay_memory_size', len(D), total_env_steps)
+                # ################
+                # Log & save model
+                # ################
+                if done:
+                    writer.add_scalar('train/episode_reward', episode_reward, total_env_steps)
+                    writer.add_scalar('train/episode_steps', episode_steps, total_env_steps)
+                    writer.add_scalar('train/episodes', episodes, total_env_steps)
+                    writer.add_scalar('train/replay_memory_size', len(D), total_env_steps)
 
-            _msg = 'total-steps #{:<10}|| train score:{:<8.3f} eps steps: {:<10} episodes: {:<10}'
-            _msg = _msg.format(total_env_steps, episode_reward, episode_steps, episodes)
-            train_logger.info(_msg)
+                    _msg = 'total-steps #{:<10}|| train score:{:<8.3f} eps steps: {:<10} episodes: {:<10}'
+                    _msg = _msg.format(total_env_steps, episode_reward, episode_steps, episodes)
+                    train_logger.info(_msg)
 
-        # save model
-        if (episodes % config.args.checkpoint_interval == 0) or total_env_steps >= config.max_env_steps:
-            assert '.p' in config.model_path
-            torch.save(model.state_dict(), config.model_path)
-            torch.save({'model': model.state_dict(),
-                        'dynamics_optimizer': dynamics_optimizer.state_dict(),
-                        'value_optimizer': value_optimizer.state_dict(),
-                        'policy_optimizer': policy_optimizer.state_dict()},
-                       config.checkpoint_path)
+                # save model
+                if (episodes % config.args.checkpoint_interval == 0) or total_env_steps >= config.max_env_steps:
+                    assert '.p' in config.model_path
+                    torch.save(model.state_dict(), config.model_path)
+                    torch.save({'model': model.state_dict(),
+                                'dynamics_optimizer': dynamics_optimizer.state_dict(),
+                                'value_optimizer': value_optimizer.state_dict(),
+                                'policy_optimizer': policy_optimizer.state_dict()},
+                               config.checkpoint_path)
 
-            if config.args.checkpoint_experience:
-                torch.save(D, config.experiance_path)  # Warning: will fail with MemoryError with large memory sizes
+                    if config.args.checkpoint_experience:
+                        # Warning: will fail with MemoryError with large memory sizes
+                        torch.save(D, config.experiance_path)
 
-            if config.args.use_wandb:
-                import wandb
-                wandb.save(config.checkpoint_path, policy='now')
-                wandb.save(config.model_path, policy='now')
+                    if config.args.use_wandb:
+                        import wandb
+                        wandb.save(config.checkpoint_path, policy='now')
+                        wandb.save(config.model_path, policy='now')
 
         # check if max. env steps reached.
         if total_env_steps >= config.max_env_steps:
@@ -354,3 +355,4 @@ def train(config: BaseConfig, writer: SummaryWriter):
             break
 
     env.close()
+    test_envs.close()
