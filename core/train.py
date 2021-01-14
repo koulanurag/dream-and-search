@@ -234,6 +234,19 @@ def train(config: BaseConfig, writer: SummaryWriter):
     policy_optimizer = Adam([{'params': model.actor.parameters()}], lr=config.args.actor_lr)
     optimizer = (dynamics_optimizer, value_optimizer, policy_optimizer)
 
+    if config.args.use_wandb:
+        assert '.p' in config.model_path
+        torch.save(model.state_dict(), config.model_path)
+        torch.save({'model': model.state_dict(),
+                    'dynamics_optimizer': dynamics_optimizer.state_dict(),
+                    'value_optimizer': value_optimizer.state_dict(),
+                    'policy_optimizer': policy_optimizer.state_dict()},
+                   config.checkpoint_path)
+
+        import wandb
+        wandb.save(config.checkpoint_path, policy='live')
+        wandb.save(config.model_path, policy='live')
+
     # Select Planner
     base_policy, test_base_policy = model.actor, test_model.actor  # dreamer
     if config.args.search_mode == 'no-search':
@@ -344,11 +357,6 @@ def train(config: BaseConfig, writer: SummaryWriter):
                     if config.args.checkpoint_experience:
                         # Warning: will fail with MemoryError with large memory sizes
                         torch.save(D, config.experiance_path)
-
-                    if config.args.use_wandb:
-                        import wandb
-                        wandb.save(config.checkpoint_path, policy='now')
-                        wandb.save(config.model_path, policy='now')
 
         # check if max. env steps reached.
         if total_env_steps >= config.max_env_steps:
