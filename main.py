@@ -68,7 +68,7 @@ if __name__ == '__main__':
     parser.add_argument('--top-candidates', type=int, default=100, metavar='K', help='Number of top candidates to fit')
     parser.add_argument('--test-interval', type=int, default=25, metavar='I', help='Test interval (episodes)')
     parser.add_argument('--test-episodes', type=int, default=1, metavar='E', help='Number of test episodes')
-    parser.add_argument('--checkpoint-interval', type=int, default=50, metavar='I',
+    parser.add_argument('--checkpoint-interval', type=int, default=1, metavar='I',
                         help='Checkpoint interval (episodes)')
     parser.add_argument('--checkpoint-experience', action='store_true', help='Checkpoint experience replay')
     parser.add_argument('--render', action='store_true', help='Render environment')
