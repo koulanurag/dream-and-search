@@ -30,7 +30,7 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
     for update_step in range(config.args.collect_interval):
         # sample batch
         # Transitions start at time t = 0
-        observations, actions, rewards, non_terminals = D.sample(config.args.batch_size, config.args.chunk_size)
+        observations, actions, rewards, non_terminals = D.sample(config.args.batch_size)
 
         # ##################
         # Dynamics learning
@@ -215,7 +215,7 @@ def train(config: BaseConfig, writer: SummaryWriter):
     # create memory
     D = ExperienceReplay(config.args.experience_size, config.args.symbolic_env, env.observation_size,
                          env.action_size, config.args.bit_depth, config.args.device,
-                         config.args.enforce_absorbing_state)
+                         config.args.enforce_absorbing_state, config.args.chunk_size)
 
     # create networks
     model = config.get_uniform_network().to(config.args.device)
@@ -283,7 +283,7 @@ def train(config: BaseConfig, writer: SummaryWriter):
 
     while True:
         # Learning
-        if len(D) >= (config.args.batch_size * config.args.chunk_size) and total_env_steps > config.seed_steps:
+        if len(D) >= (config.args.batch_size) and total_env_steps > config.seed_steps:
             update_params(config, model, optimizer, D, free_nats, global_prior, writer, total_env_steps)
 
         # Environment Interaction
