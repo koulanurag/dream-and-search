@@ -56,13 +56,14 @@ class ExperienceReplay:
         non_terminals = self.nonterminals[vec_idxs].reshape(L, n, 1)
 
         if self.enforce_absorbing_state:
-            for row_i in range(non_terminals.shape[0]):
-                terminal_idxs = np.where(non_terminals[row_i, :, 0] == 0)[0]
+            for chunk_idx in range(non_terminals.shape[1]):
+                terminal_idxs = np.where(non_terminals[:, chunk_idx, 0] == 0)[0]
                 if len(terminal_idxs) > 0:
                     first_terminal_idx = terminal_idxs[0]
-                    rewards[row_i, first_terminal_idx + 1:] = 0.0  # absorbing reward
-                    non_terminals[row_i, first_terminal_idx + 1:, 0] = 0  # terminal states
-                    obs[row_i, first_terminal_idx + 1:, :] = obs[row_i, first_terminal_idx, :]  # terminal observations
+                    rewards[first_terminal_idx + 1:, chunk_idx] = 0.0  # absorbing reward
+                    non_terminals[first_terminal_idx + 1:, chunk_idx, 0] = 0  # terminal states
+                    # terminal observations
+                    obs[first_terminal_idx + 1:, chunk_idx, :] = obs[first_terminal_idx, chunk_idx, :]
 
         return obs, actions, rewards, non_terminals
 
