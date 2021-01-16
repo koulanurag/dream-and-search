@@ -92,7 +92,8 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
         else:
             dynamics_loss.backward()
         torch.nn.utils.clip_grad_norm_(model.transition.parameters(), config.args.grad_clip_norm, norm_type=2)
-        torch.nn.utils.clip_grad_norm_(model.reward.parameters(), config.args.grad_clip_norm, norm_type=2)
+        torch.nn.utils.clip_grad_norm_(model.reward_1.parameters(), config.args.grad_clip_norm, norm_type=2)
+        torch.nn.utils.clip_grad_norm_(model.reward_2.parameters(), config.args.grad_clip_norm, norm_type=2)
         torch.nn.utils.clip_grad_norm_(model.observation.parameters(), config.args.grad_clip_norm, norm_type=2)
         torch.nn.utils.clip_grad_norm_(model.encoder.parameters(), config.args.grad_clip_norm, norm_type=2)
         if config.args.pcont:
@@ -107,17 +108,19 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
             actor_states = transition_output.posterior_states.detach()
             actor_beliefs = transition_output.beliefs.detach()
 
-        with FreezeParameters([model.transition, model.encoder, model.reward, model.observation, model.pcont]):
+        with FreezeParameters([model.transition, model.encoder, model.reward_1, model.reward_2,
+                               model.observation, model.pcont]):
             imagination_output = imagine_ahead(actor_states, actor_beliefs, model.actor, model.transition,
                                                config.args.planning_horizon)
-        with FreezeParameters([model.transition, model.encoder, model.reward, model.observation, model.pcont]):
-            with FreezeParameters([model.value]):
-                imged_reward_1 = bottle(model.reward, (imagination_output.belief, imagination_output.prior_state))
-                imged_reward_2 = bottle(model.reward, (imagination_output.belief, imagination_output.prior_state))
-                imged_reward = min(imged_reward_1, imged_reward_2)
+        with FreezeParameters([model.transition, model.encoder, model.reward_1, model.reward_2,
+                               model.observation, model.pcont]):
+            with FreezeParameters([model.value_1, model.value_2]):
+                imged_reward_1 = bottle(model.reward_1, (imagination_output.belief, imagination_output.prior_state))
+                imged_reward_2 = bottle(model.reward_2, (imagination_output.belief, imagination_output.prior_state))
+                imged_reward = torch.min(imged_reward_1, imged_reward_2)
                 value_pred_1 = bottle(model.value_1, (imagination_output.belief, imagination_output.prior_state))
                 value_pred_2 = bottle(model.value_2, (imagination_output.belief, imagination_output.prior_state))
-                value_pred = min(value_pred_1, value_pred_2)
+                value_pred = torch.min(value_pred_1, value_pred_2)
                 if config.args.pcont:
                     pcont_pred = bottle(model.pcont, (imagination_output.belief, imagination_output.prior_state))
                 else:
@@ -152,7 +155,8 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
         # Update value parameters
         value_optimizer.zero_grad()
         (value_loss_1 + value_loss_2).backward()
-        torch.nn.utils.clip_grad_norm_(model.value.parameters(), config.args.grad_clip_norm, norm_type=2)
+        torch.nn.utils.clip_grad_norm_(model.value_1.parameters(), config.args.grad_clip_norm, norm_type=2)
+        torch.nn.utils.clip_grad_norm_(model.value_2.parameters(), config.args.grad_clip_norm, norm_type=2)
         value_optimizer.step()
 
         # store for logging
