@@ -54,6 +54,7 @@ class ExperienceReplay:
         actions = self.actions[vec_idxs].reshape(L, n, -1)
         rewards = self.rewards[vec_idxs].reshape(L, n)
         non_terminals = self.nonterminals[vec_idxs].reshape(L, n, 1)
+        absorbing_states = torch.zeros(non_terminals.shape)
 
         if self.enforce_absorbing_state:
             for chunk_idx in range(non_terminals.shape[1]):
@@ -64,8 +65,9 @@ class ExperienceReplay:
                     non_terminals[first_terminal_idx + 1:, chunk_idx, 0] = 0  # terminal states
                     # terminal observations
                     obs[first_terminal_idx + 1:, chunk_idx, :] = obs[first_terminal_idx, chunk_idx, :]
+                    absorbing_states[first_terminal_idx + 1:, chunk_idx, 0] = 1
 
-        return obs, actions, rewards, non_terminals
+        return obs, actions, rewards, non_terminals, absorbing_states
 
     # Returns a batch of sequence chunks uniformly sampled from the memory
     def sample(self, n, L):
