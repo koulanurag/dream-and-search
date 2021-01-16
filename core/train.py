@@ -116,7 +116,8 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
 
         returns = lambda_return(imged_reward, value_pred, pcont_pred, bootstrap=value_pred[-1],
                                 lambda_=config.args.disclam)
-        returns[:, absorbing_states[:-1].flatten() == 1] = 0
+        if config.args.enforce_absorbing_states:
+            returns[:, absorbing_states[:-1].flatten() == 1] = 0
         policy_loss = -torch.mean(returns)
 
         # Update policy parameters
