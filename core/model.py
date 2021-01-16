@@ -326,10 +326,12 @@ class DreamerNetwork(jit.ScriptModule):
 
         self.transition = TransitionNetwork(belief_size, state_size, action_size, hidden_size, embedding_size,
                                             enforce_absorbing_state=enforce_absorbing_state)
-        self.reward = RewardNetwork(self.belief_size, self.state_size, hidden_size)
+        self.reward_1 = RewardNetwork(self.belief_size, self.state_size, hidden_size)
+        self.reward_2 = RewardNetwork(self.belief_size, self.state_size, hidden_size)
         self.actor = ActorNetwork(self.belief_size, self.state_size, hidden_size, action_size, sample_random_action_fn,
                                   action_scale=action_scale)
-        self.value = DenseNetwork(self.belief_size, self.state_size, hidden_size)
+        self.value_1 = DenseNetwork(self.belief_size, self.state_size, hidden_size)
+        self.value_2 = DenseNetwork(self.belief_size, self.state_size, hidden_size)
         self.pcont = PcontNetwork(self.belief_size, self.state_size, hidden_size)
 
     @jit.script_method

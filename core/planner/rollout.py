@@ -41,8 +41,14 @@ class RolloutPlanner:
                                            self.planning_horizon, det=True,
                                            root_uniform_action_mask=root_uniform_action_mask)
 
-        imged_reward = bottle(self.model.reward, (imagination_output.belief, imagination_output.prior_state))
-        value_pred = bottle(self.model.value, (imagination_output.belief, imagination_output.prior_state))
+        imged_reward_1 = bottle(self.model.reward_1, (imagination_output.belief, imagination_output.prior_state))
+        imged_reward_2 = bottle(self.model.reward_2, (imagination_output.belief, imagination_output.prior_state))
+        imged_reward = min(imged_reward_1, imged_reward_2)
+
+        value_pred_1 = bottle(self.model.value_1, (imagination_output.belief, imagination_output.prior_state))
+        value_pred_2 = bottle(self.model.value_2, (imagination_output.belief, imagination_output.prior_state))
+        value_pred = min(value_pred_1, value_pred_2)
+
         if self.pcont:
             pcont_pred = bottle(self.model.pcont, (imagination_output.belief, imagination_output.prior_state))
         else:

@@ -46,16 +46,21 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
 
         # observation and reward loss
         predicted_obs = bottle(model.observation, (transition_output.beliefs, transition_output.posterior_states))
-        predicted_reward = bottle(model.reward, (transition_output.beliefs, transition_output.posterior_states))
+        predicted_reward_1 = bottle(model.reward_1, (transition_output.beliefs, transition_output.posterior_states))
+        predicted_reward_2 = bottle(model.reward_2, (transition_output.beliefs, transition_output.posterior_states))
         if config.args.worldmodel_LogProbLoss:
             observation_dist = Normal(predicted_obs, 1)
-            reward_dist = Normal(predicted_reward, 1)
+            reward_dist_1 = Normal(predicted_reward_1, 1)
+            reward_dist_2 = Normal(predicted_reward_2, 1)
 
             observation_loss = -observation_dist.log_prob(observations[1:])
-            reward_loss = -reward_dist.log_prob(rewards[:-1]).mean(dim=(0, 1))
+            reward_loss_1 = -reward_dist_1.log_prob(rewards[:-1]).mean(dim=(0, 1))
+            reward_loss_2 = -reward_dist_2.log_prob(rewards[:-1]).mean(dim=(0, 1))
         else:
             observation_loss = F.mse_loss(predicted_obs, observations[1:], reduction='none')
-            reward_loss = F.mse_loss(predicted_reward, rewards[:-1], reduction='none').mean(dim=(0, 1))
+            reward_loss_1 = F.mse_loss(predicted_reward_1, rewards[:-1], reduction='none').mean(dim=(0, 1))
+            reward_loss_2 = F.mse_loss(predicted_reward_2, rewards[:-1], reduction='none').mean(dim=(0, 1))
+
         observation_loss = observation_loss.sum(dim=2 if config.args.symbolic_env else (2, 3, 4)).mean(dim=(0, 1))
 
         # transition loss
@@ -69,7 +74,7 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
                                                                     transition_output.posterior_std_devs),
                                                              global_prior).sum(dim=2).mean(dim=(0, 1))
 
-        dynamics_loss = observation_loss + reward_loss + kl_loss
+        dynamics_loss = observation_loss + reward_loss_1 + reward_loss_2 + kl_loss
 
         # discount loss
         pcont_loss = torch.tensor([0])
@@ -107,8 +112,12 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
                                                config.args.planning_horizon)
         with FreezeParameters([model.transition, model.encoder, model.reward, model.observation, model.pcont]):
             with FreezeParameters([model.value]):
-                imged_reward = bottle(model.reward, (imagination_output.belief, imagination_output.prior_state))
-                value_pred = bottle(model.value, (imagination_output.belief, imagination_output.prior_state))
+                imged_reward_1 = bottle(model.reward, (imagination_output.belief, imagination_output.prior_state))
+                imged_reward_2 = bottle(model.reward, (imagination_output.belief, imagination_output.prior_state))
+                imged_reward = min(imged_reward_1, imged_reward_2)
+                value_pred_1 = bottle(model.value_1, (imagination_output.belief, imagination_output.prior_state))
+                value_pred_2 = bottle(model.value_2, (imagination_output.belief, imagination_output.prior_state))
+                value_pred = min(value_pred_1, value_pred_2)
                 if config.args.pcont:
                     pcont_pred = bottle(model.pcont, (imagination_output.belief, imagination_output.prior_state))
                 else:
@@ -135,20 +144,24 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
             target_return = returns.detach()
 
         # detach the input tensor from the transition network.
-        value_dist = Normal(bottle(model.value, (value_beliefs, value_prior_states)), 1)
-        value_loss = -value_dist.log_prob(target_return).mean(dim=(0, 1))
+        value_dist_1 = Normal(bottle(model.value_1, (value_beliefs, value_prior_states)), 1)
+        value_dist_2 = Normal(bottle(model.value_2, (value_beliefs, value_prior_states)), 1)
+        value_loss_1 = -value_dist_1.log_prob(target_return).mean(dim=(0, 1))
+        value_loss_2 = -value_dist_2.log_prob(target_return).mean(dim=(0, 1))
 
         # Update value parameters
         value_optimizer.zero_grad()
-        value_loss.backward()
+        (value_loss_1 + value_loss_2).backward()
         torch.nn.utils.clip_grad_norm_(model.value.parameters(), config.args.grad_clip_norm, norm_type=2)
         value_optimizer.step()
 
         # store for logging
         losses['actor'] += policy_loss.item()
-        losses['value'] += value_loss.item()
+        losses['value_1'] += value_loss_1.item()
+        losses['value_2'] += value_loss_2.item()
         losses['obs'] += observation_loss.item()
-        losses['reward'] += reward_loss.item()
+        losses['reward_1'] += reward_loss_1.item()
+        losses['reward_2'] += reward_loss_2.item()
         losses['kl'] += kl_loss.item()
         losses['pcont'] += pcont_loss.item()
 
@@ -159,11 +172,8 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
     losses = {k: v / config.args.collect_interval for k, v in losses.items()}
 
     # Log
-    writer.add_scalar('train/actor_loss', losses['actor'], total_env_steps)
-    writer.add_scalar('train/value_loss', losses['value'], total_env_steps)
-    writer.add_scalar('train/obs_loss', losses['obs'], total_env_steps)
-    writer.add_scalar('train/reward_loss', losses['reward'], total_env_steps)
-    writer.add_scalar('train/kl_loss', losses['kl'], total_env_steps)
+    for key, value in losses.items():
+        writer.add_scalar('train/{}'.format(key), value, total_env_steps)
     writer.add_scalar('train/network_updates', count_tracker['updates'], total_env_steps)
     if config.args.pcont:
         writer.add_scalar('train/pcont_loss', losses['pcont'], total_env_steps)
@@ -174,9 +184,7 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
                       total_env_steps)
 
     _msg = 'env steps #{:<10}'.format(total_env_steps)
-    _msg += 'actor loss:{:<8.3f} value loss: {:<8.3f} '.format(losses['actor'], losses['value'])
-    _msg += 'obs loss : {:<8.3f} reward loss : {:<8.3f} kl loss: {:<8.3f} '.format(losses['obs'], losses['reward'],
-                                                                                   losses['kl'])
+    _msg += ' '.join(['{}:{:<8.3f} loss'.format(key, value) for key, value in losses.items()])
     train_logger.info(_msg)
 
 
@@ -229,11 +237,13 @@ def train(config: BaseConfig, writer: SummaryWriter):
     # create optimizers
     dynamics_optimizer = Adam([{'params': model.transition.parameters()},
                                {'params': model.observation.parameters()},
-                               {'params': model.reward.parameters()},
+                               {'params': model.reward_1.parameters()},
+                               {'params': model.reward_2.parameters()},
                                {'params': model.encoder.parameters()}] +
                               ([{'params': model.pcont.parameters()}] if config.args.pcont else []),
                               lr=config.args.dynamics_lr)
-    value_optimizer = Adam([{'params': model.value.parameters()}], lr=config.args.value_lr)
+    value_optimizer = Adam([{'params': model.value_1.parameters()},
+                            {'params': model.value_2.parameters()}], lr=config.args.value_lr)
     policy_optimizer = Adam([{'params': model.actor.parameters()}], lr=config.args.actor_lr)
     optimizer = (dynamics_optimizer, value_optimizer, policy_optimizer)
 
