@@ -29,7 +29,7 @@ def bottle(f, x_tuple):
     return output
 
 
-class SymbolicObservationNetwork(jit.ScriptModule):
+class SymbolicObservationNetwork(nn.Module):
     def __init__(self, observation_size, belief_size, state_size, embedding_size, activation_function='relu'):
         super().__init__()
         self.act_fn = getattr(F, activation_function)
@@ -38,7 +38,7 @@ class SymbolicObservationNetwork(jit.ScriptModule):
         self.fc3 = nn.Linear(embedding_size, observation_size)
         self.modules = [self.fc1, self.fc2, self.fc3]
 
-    @jit.script_method
+    # @jit.script_method
     def forward(self, belief, state):
         hidden = self.act_fn(self.fc1(torch.cat([belief, state], dim=1)))
         hidden = self.act_fn(self.fc2(hidden))
@@ -46,7 +46,7 @@ class SymbolicObservationNetwork(jit.ScriptModule):
         return observation
 
 
-class VisualObservationNetwork(jit.ScriptModule):
+class VisualObservationNetwork(nn.Module):
     __constants__ = ['embedding_size']
 
     def __init__(self, belief_size, state_size, embedding_size, activation_function='relu'):
@@ -60,7 +60,7 @@ class VisualObservationNetwork(jit.ScriptModule):
         self.conv4 = nn.ConvTranspose2d(32, 3, 6, stride=2)
         self.modules = [self.fc1, self.conv1, self.conv2, self.conv3, self.conv4]
 
-    @jit.script_method
+    # @jit.script_method
     def forward(self, belief, state):
         hidden = self.fc1(torch.cat([belief, state], dim=1))  # No nonlinearity here
         hidden = hidden.view(-1, self.embedding_size, 1, 1)
@@ -71,7 +71,7 @@ class VisualObservationNetwork(jit.ScriptModule):
         return observation
 
 
-class SymbolicEncoder(jit.ScriptModule):
+class SymbolicEncoder(nn.Module):
     def __init__(self, observation_size, embedding_size, activation_function='relu'):
         super().__init__()
         self.act_fn = getattr(F, activation_function)
@@ -80,7 +80,7 @@ class SymbolicEncoder(jit.ScriptModule):
         self.fc3 = nn.Linear(embedding_size, embedding_size)
         self.modules = [self.fc1, self.fc2, self.fc3]
 
-    @jit.script_method
+    # @jit.script_method
     def forward(self, observation):
         hidden = self.act_fn(self.fc1(observation))
         hidden = self.act_fn(self.fc2(hidden))
@@ -88,7 +88,7 @@ class SymbolicEncoder(jit.ScriptModule):
         return hidden
 
 
-class VisualEncoder(jit.ScriptModule):
+class VisualEncoder(nn.Module):
     __constants__ = ['embedding_size']
 
     def __init__(self, embedding_size, activation_function='relu'):
@@ -102,7 +102,7 @@ class VisualEncoder(jit.ScriptModule):
         self.fc = nn.Identity() if embedding_size == 1024 else nn.Linear(1024, embedding_size)
         self.modules = [self.conv1, self.conv2, self.conv3, self.conv4]
 
-    @jit.script_method
+    # @jit.script_method
     def forward(self, observation):
         hidden = self.act_fn(self.conv1(observation))
         hidden = self.act_fn(self.conv2(hidden))
@@ -113,7 +113,7 @@ class VisualEncoder(jit.ScriptModule):
         return hidden
 
 
-class TransitionNetwork(jit.ScriptModule):
+class TransitionNetwork(nn.Module):
     __constants__ = ['min_std_dev']
 
     def __init__(self, belief_size, state_size, action_size, hidden_size, embedding_size, activation_function='relu',
@@ -143,7 +143,7 @@ class TransitionNetwork(jit.ScriptModule):
     # ps: -X-
     # b : -x--X--X--X--X--X-
     # s : -x--X--X--X--X--X-
-    @jit.script_method
+    # @jit.script_method
     def forward(self, prev_state: torch.Tensor, actions: torch.Tensor, prev_belief: torch.Tensor,
                 observations: Optional[torch.Tensor] = None, nonterminals: Optional[torch.Tensor] = None) -> \
             TransitionOutput:
@@ -205,7 +205,7 @@ class TransitionNetwork(jit.ScriptModule):
         )
 
 
-class RewardNetwork(jit.ScriptModule):
+class RewardNetwork(nn.Module):
     def __init__(self, belief_size, state_size, hidden_size, activation_function='relu'):
         # [--belief-size: 200, --hidden-size: 200, --state-size: 30]
         super().__init__()
@@ -215,7 +215,7 @@ class RewardNetwork(jit.ScriptModule):
         self.fc3 = nn.Linear(hidden_size, 1)
         self.modules = [self.fc1, self.fc2, self.fc3]
 
-    @jit.script_method
+    # @jit.script_method
     def forward(self, belief, state):
         x = torch.cat([belief, state], dim=1)
         hidden = self.act_fn(self.fc1(x))
@@ -224,7 +224,7 @@ class RewardNetwork(jit.ScriptModule):
         return reward
 
 
-class DenseNetwork(jit.ScriptModule):
+class DenseNetwork(nn.Module):
     def __init__(self, belief_size, state_size, hidden_size, activation_function='relu'):
         super().__init__()
         self.act_fn = getattr(F, activation_function)
@@ -234,7 +234,7 @@ class DenseNetwork(jit.ScriptModule):
         self.fc4 = nn.Linear(hidden_size, 1)
         self.modules = [self.fc1, self.fc2, self.fc3, self.fc4]
 
-    @jit.script_method
+    # @jit.script_method
     def forward(self, belief, state):
         x = torch.cat([belief, state], dim=1)
         hidden = self.act_fn(self.fc1(x))
@@ -244,7 +244,7 @@ class DenseNetwork(jit.ScriptModule):
         return output
 
 
-class ActorNetwork(jit.ScriptModule):
+class ActorNetwork(nn.Module):
     def __init__(self, belief_size, state_size, hidden_size, action_size, sample_random_action_fn, dist='tanh_normal',
                  activation_function='elu', min_std=1e-4, init_std=5.0, mean_scale=5.0, action_scale=1.0):
         super().__init__()
@@ -263,7 +263,7 @@ class ActorNetwork(jit.ScriptModule):
         self._sample_random_action = sample_random_action_fn
         self.action_scale = action_scale
 
-    @jit.script_method
+    # @jit.script_method
     def forward(self, belief, state):
         raw_init_std = torch.log(torch.exp(self._init_std) - 1)
         x = torch.cat([belief, state], dim=1)
@@ -293,7 +293,7 @@ class ActorNetwork(jit.ScriptModule):
         return torch.FloatTensor([self._sample_random_action().numpy() for _ in range(batch)])
 
 
-class PcontNetwork(jit.ScriptModule):
+class PcontNetwork(nn.Module):
     def __init__(self, belief_size, state_size, hidden_size):
         super(PcontNetwork, self).__init__()
         self.dense = DenseNetwork(belief_size, state_size, hidden_size)
@@ -303,7 +303,7 @@ class PcontNetwork(jit.ScriptModule):
         return torch.sigmoid(x)
 
 
-class DreamerNetwork(jit.ScriptModule):
+class DreamerNetwork(nn.Module):
     def __init__(self, obs_size, belief_size, state_size, hidden_size, embedding_size, action_size,
                  sample_random_action_fn, symbolic: bool, enforce_absorbing_state: bool, action_scale=1.0):
         super(DreamerNetwork, self).__init__()
@@ -332,15 +332,15 @@ class DreamerNetwork(jit.ScriptModule):
         self.value = DenseNetwork(self.belief_size, self.state_size, hidden_size)
         self.pcont = PcontNetwork(self.belief_size, self.state_size, hidden_size)
 
-    @jit.script_method
+    # @jit.script_method
     def init_action(self, batch_size: int = 1):
         return torch.zeros((batch_size, self.num_actions))
 
-    @jit.script_method
+    # @jit.script_method
     def init_belief(self, batch_size: int = 1):
         return torch.zeros((batch_size, self.belief_size))
 
-    @jit.script_method
+    # @jit.script_method
     def init_state(self, batch_size: int = 1):
         return torch.zeros((batch_size, self.state_size))
 
