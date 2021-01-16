@@ -189,7 +189,7 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
                       total_env_steps)
 
     _msg = 'env steps #{:<10}'.format(total_env_steps)
-    _msg += ' '.join(['{}:{:<8.3f} loss'.format(key, value) for key, value in losses.items()])
+    _msg += ' '.join(['{} loss :{:<8.3f}'.format(key, value) for key, value in losses.items()])
     train_logger.info(_msg)
 
 

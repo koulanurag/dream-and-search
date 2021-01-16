@@ -30,7 +30,7 @@ def test(config, env, model, planner, mode, render=False):
 
         # step in the environment
         for _ in range(config.args.action_repeat):
-            next_observation, reward, dones = env.step(action.cpu())
+            next_observation, reward, dones, infos = env.step(action.cpu())
             episode_rewards.append(reward.cpu().numpy() * (1 - dones.cpu().int().numpy()))
             episode_steps += (1 - dones.cpu().int().numpy())
 

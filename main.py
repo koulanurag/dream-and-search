@@ -67,7 +67,7 @@ if __name__ == '__main__':
     parser.add_argument('--candidates', type=int, default=1000, metavar='J', help='Candidate samples per iteration')
     parser.add_argument('--top-candidates', type=int, default=100, metavar='K', help='Number of top candidates to fit')
     parser.add_argument('--test-interval', type=int, default=25, metavar='I', help='Test interval (episodes)')
-    parser.add_argument('--test-episodes', type=int, default=1, metavar='E', help='Number of test episodes')
+    parser.add_argument('--test-episodes', type=int, default=2, metavar='E', help='Number of test episodes')
     parser.add_argument('--checkpoint-interval', type=int, default=1, metavar='I',
                         help='Checkpoint interval (episodes)')
     parser.add_argument('--checkpoint-experience', action='store_true', help='Checkpoint experience replay')
@@ -156,20 +156,20 @@ if __name__ == '__main__':
             if args.use_wandb:
                 wandb.join()
         elif args.opr == 'test':
-            model_path = run_config.model_path
-            if args.restore_model_from_wandb:
-                assert args.wandb_run_id is not None, 'wandb run id cannot be {}'.format(args.wandb_run_id)
-                import wandb
-
-                root, name = os.path.split(run_config.checkpoint_path)
-                wandb.restore(name=name, run_path=args.wandb_run_id, replace=True, root=root)
-
-            assert os.path.exists(run_config.checkpoint_path), 'model not found: {}'.format(run_config.checkpoint_path)
+            # model_path = run_config.model_path
+            # if args.restore_model_from_wandb:
+            #     assert args.wandb_run_id is not None, 'wandb run id cannot be {}'.format(args.wandb_run_id)
+            #     import wandb
+            #
+            #     root, name = os.path.split(run_config.checkpoint_path)
+            #     wandb.restore(name=name, run_path=args.wandb_run_id, replace=True, root=root)
+            #
+            # assert os.path.exists(run_config.checkpoint_path), 'model not found: {}'.format(run_config.checkpoint_path)
 
             model = run_config.get_uniform_network()
             model = model.to('cpu')
-            checkpoint = torch.load(run_config.checkpoint_path, map_location=torch.device('cpu'))
-            model.load_state_dict(checkpoint['model'])
+            # checkpoint = torch.load(run_config.checkpoint_path, map_location=torch.device('cpu'))
+            # model.load_state_dict(checkpoint['model'])
             env_batch = EnvBatcher(run_config.new_game, args.test_episodes)
 
             base_policy = model.actor  # dreamer
