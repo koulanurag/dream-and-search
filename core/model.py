@@ -145,8 +145,8 @@ class TransitionNetwork(jit.ScriptModule):
     # s : -x--X--X--X--X--X-
     @jit.script_method
     def forward(self, prev_state: torch.Tensor, actions: torch.Tensor, prev_belief: torch.Tensor,
-                observations: Optional[torch.Tensor] = None, nonterminals: Optional[torch.Tensor] = None) -> \
-            TransitionOutput:
+                observations: Optional[torch.Tensor] = None, nonterminals: Optional[torch.Tensor] = None,
+                max_step_overflow: Optional[torch.Tensor] = None) -> TransitionOutput:
         """
         Input: init_belief, init_state:  torch.Size([50, 200]) torch.Size([50, 30])
         Output: beliefs, prior_states, prior_means, prior_std_devs, posterior_states, posterior_means,
@@ -171,7 +171,9 @@ class TransitionNetwork(jit.ScriptModule):
             # Select appropriate previous state
             _state = prior_states[t] if observations is None else posterior_states[t]
             # Mask if previous transition was terminal
-            if not self.enforce_absorbing_state:
+            if self.enforce_absorbing_state:
+                _state = _state if max_step_overflow is None else _state * max_step_overflow[t]
+            else:
                 _state = _state if nonterminals is None else _state * nonterminals[t]
 
             # Compute belief (deterministic hidden state)

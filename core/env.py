@@ -55,7 +55,7 @@ class GymEnv:
         action = action.detach().numpy()
         reward = 0
         for k in range(self.action_repeat):
-            state, reward_k, done, _ = self._env.step(action)
+            state, reward_k, done, step_info = self._env.step(action)
             reward += reward_k
             self.t += 1  # Increment internal timer
             done = done or self.t == self.max_episode_length
@@ -65,7 +65,10 @@ class GymEnv:
             observation = torch.tensor(state, dtype=torch.float32).unsqueeze(dim=0)
         else:
             observation = _images_to_observation(self._env.render(mode='rgb_array'), self.bit_depth)
-        return observation, reward, done
+
+        info = {'max_step_overflow': 1 if (
+                ('TimeLimit.truncated' in step_info) and step_info['TimeLimit.truncated']) else 0}
+        return observation, reward, done, info
 
     def render(self):
         self._env.render()

@@ -30,8 +30,9 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
     for update_step in range(config.args.collect_interval):
         # sample batch
         # Transitions start at time t = 0
-        observations, actions, rewards, non_terminals, absorbing_states = D.sample(config.args.batch_size,
-                                                                                   config.args.chunk_size)
+        observations, actions, rewards, non_terminals, absorbing_states, max_step_overflow = D.sample(
+            config.args.batch_size,
+            config.args.chunk_size)
 
         # ##################
         # Dynamics learning
@@ -42,7 +43,7 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
 
         transition_output = model.transition(init_state, actions[:-1], init_belief,
                                              bottle(model.encoder, (observations[1:],)),
-                                             non_terminals[:-1])
+                                             non_terminals[:-1], max_step_overflow[:-1])
 
         # observation and reward loss
         predicted_obs = bottle(model.observation, (transition_output.beliefs, transition_output.posterior_states))
@@ -81,7 +82,7 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
         if config.args.pcont:
             pcont_pred = bottle(model.pcont, (transition_output.beliefs, transition_output.posterior_states))
             pcont_dist = Bernoulli(probs=pcont_pred)
-            pcont_target = config.args.discount * non_terminals[:-1].squeeze(-1)
+            pcont_target = config.args.discount * (non_terminals[:-1] + max_step_overflow[:-1]).squeeze(-1)
             pcont_loss = - pcont_dist.log_prob(pcont_target).mean(dim=(0, 1))
             pcont_loss *= config.args.pcont_scale
 
@@ -325,7 +326,7 @@ def train(config: BaseConfig, writer: SummaryWriter):
                 step_action = action[0].cpu()
                 step_reward = 0
                 for _ in range(config.args.action_repeat):
-                    next_observation, reward, done = env.step(step_action)
+                    next_observation, reward, done, info = env.step(step_action)
                     step_reward += reward
                     episode_steps += 1
                     total_env_steps += 1
@@ -344,7 +345,7 @@ def train(config: BaseConfig, writer: SummaryWriter):
 
                 episode_reward += step_reward
                 # add to memory
-                D.append(observation, step_action, step_reward, done)
+                D.append(observation, step_action, step_reward, done, info['max_step_overflow'])
                 observation = next_observation
 
                 # ################
