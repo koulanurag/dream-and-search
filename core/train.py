@@ -30,11 +30,14 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
     # ##################
     # Dynamics learning
     # ##################
+    beta_start = 0.4
+    beta_frames = 10000
+    beta_by_frame = lambda frame_idx: min(1.0, beta_start + frame_idx * (1.0 - beta_start) / beta_frames)
     for update_step in range(config.args.collect_interval):
         # sample batch
         # Transitions start at time t = 0
         observations, actions, rewards, non_terminals, absorbing_states, idxs, priorities = D.sample(
-            config.args.batch_size)
+            config.args.batch_size, beta=beta_by_frame(total_env_steps))
 
         init_belief = model.init_belief(config.args.batch_size).to(config.args.device)
         init_state = model.init_state(config.args.batch_size).to(config.args.device)
