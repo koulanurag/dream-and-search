@@ -6,7 +6,7 @@ from core.env import postprocess_observation, preprocess_observation_
 
 class ExperienceReplay:
     def __init__(self, size, symbolic_env, observation_size, action_size, bit_depth, device,
-                 enforce_absorbing_state=False, chunk_size=50):
+                 enforce_absorbing_state=False, chunk_size=50, prob_alpha=0.6):
         self.device = device
         self.symbolic_env = symbolic_env
         self.chunk_size = chunk_size
@@ -31,6 +31,8 @@ class ExperienceReplay:
         self._chunk_rewards = []
         self._chunk_nonterminals = []
 
+        self.prob_alpha = prob_alpha
+
     def append(self, observation, action, reward, done):
 
         if self.symbolic_env:
@@ -49,23 +51,42 @@ class ExperienceReplay:
             self.actions[self.idx] = np.array(self._chunk_actions)
             self.rewards[self.idx] = np.array(self._chunk_rewards)
             self.nonterminals[self.idx] = np.expand_dims(self._chunk_nonterminals, -1)
+            if self.full:
+                max_prio = self.chunk_priorities.max()
+            else:
+                max_prio = self.chunk_priorities[:self.idx].max() if self.idx > 0 else 1.0
+            self.chunk_priorities[self.idx] = max_prio
 
             self.idx = (self.idx + 1) % self.chunks
             self.full = self.full or self.idx == 0
-
             self._chunk_observations = []
             self._chunk_actions = []
             self._chunk_rewards = []
             self._chunk_nonterminals = []
 
-    def _sample_idx(self, use_priroty=False):
-        if use_priroty:
-            chunk_idx = np.random.randint(0, self.chunks if self.full else self.idx)
-        else:
-            chunk_idx = np.random.randint(0, self.chunks if self.full else self.idx)
-        return chunk_idx
+    def _sample_idx(self, batch_size=1, beta=0.4, use_priority=False):
+        if use_priority:
 
-    def _retrieve_batch(self, idxs, n):
+            if self.full:
+                prios = self.chunk_priorities
+            else:
+                prios = self.chunk_priorities[:self.idx]
+
+            probs = prios ** self.prob_alpha
+            probs /= probs.sum()
+            chunk_idx = np.random.choice(len(prios), batch_size, p=probs)
+
+            total = len(prios)
+            weights = (total * probs[chunk_idx]) ** (-beta)
+            weights /= weights.max()
+            weights = np.array(weights, dtype=np.float32)
+        else:
+            chunk_idx = np.random.randint(0, self.chunks if self.full else self.idx, (batch_size,))
+            weights = np.ones(chunk_idx.shape)
+
+        return chunk_idx, weights
+
+    def _retrieve_batch(self, idxs, priorities, n):
         vec_idxs = idxs.transpose().reshape(-1)  # Unroll indices
         observations = torch.as_tensor(self.observations[vec_idxs].astype(np.float32))
         if not self.symbolic_env:
@@ -75,6 +96,7 @@ class ExperienceReplay:
         actions = self.actions[vec_idxs].reshape(self.chunk_size, n, -1)
         rewards = self.rewards[vec_idxs].reshape(self.chunk_size, n)
         non_terminals = self.nonterminals[vec_idxs].reshape(self.chunk_size, n, 1)
+        absorbing_states = torch.zeros(non_terminals.shape)
 
         if self.enforce_absorbing_state:
             for chunk_idx in range(non_terminals.shape[1]):
@@ -85,13 +107,17 @@ class ExperienceReplay:
                     non_terminals[first_terminal_idx + 1:, chunk_idx, 0] = 0  # terminal states
                     # terminal observations
                     obs[first_terminal_idx + 1:, chunk_idx, :] = obs[first_terminal_idx, chunk_idx, :]
-
-        return obs, actions, rewards, non_terminals
+                    absorbing_states[first_terminal_idx + 1:, chunk_idx, 0] = 1
+        return obs, actions, rewards, non_terminals, absorbing_states, vec_idxs, priorities
 
     # Returns a batch of sequence chunks uniformly sampled from the memory
-    def sample(self, n):
-        batch = self._retrieve_batch(np.asarray([self._sample_idx() for _ in range(n)]), n)
+    def sample(self, n, use_priority=True, beta=0.4):
+        chunk_idxs, weights = self._sample_idx(batch_size=n, beta=beta, use_priority=use_priority)
+        batch = self._retrieve_batch(chunk_idxs, weights, n)
         return [torch.as_tensor(item).to(device=self.device) for item in batch]
 
+    def update_priorities(self, idxs, priorities):
+        self.chunk_priorities[idxs] = priorities
+
     def __len__(self):
-        return self.chunks if self.full else (self.idx)
+        return self.size if self.full else self.idx

@@ -27,14 +27,14 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
     losses = defaultdict(lambda: 0)
     data_distribution = {'reward': [], 'terminal': []}
 
+    # ##################
+    # Dynamics learning
+    # ##################
     for update_step in range(config.args.collect_interval):
         # sample batch
         # Transitions start at time t = 0
-        observations, actions, rewards, non_terminals = D.sample(config.args.batch_size)
-
-        # ##################
-        # Dynamics learning
-        # ##################
+        observations, actions, rewards, non_terminals, absorbing_states, idxs, priorities = D.sample(
+            config.args.batch_size)
 
         init_belief = model.init_belief(config.args.batch_size).to(config.args.device)
         init_state = model.init_state(config.args.batch_size).to(config.args.device)
@@ -46,16 +46,22 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
         # observation and reward loss
         predicted_obs = bottle(model.observation, (transition_output.beliefs, transition_output.posterior_states))
         predicted_reward = bottle(model.reward, (transition_output.beliefs, transition_output.posterior_states))
+        new_priorities = 0
         if config.args.worldmodel_LogProbLoss:
             observation_dist = Normal(predicted_obs, 1)
             reward_dist = Normal(predicted_reward, 1)
 
             observation_loss = -observation_dist.log_prob(observations[1:])
-            reward_loss = -reward_dist.log_prob(rewards[:-1]).mean(dim=(0, 1))
+            reward_loss = -reward_dist.log_prob(rewards[:-1])
         else:
             observation_loss = F.mse_loss(predicted_obs, observations[1:], reduction='none')
-            reward_loss = F.mse_loss(predicted_reward, rewards[:-1], reduction='none').mean(dim=(0, 1))
-        observation_loss = observation_loss.sum(dim=2 if config.args.symbolic_env else (2, 3, 4)).mean(dim=(0, 1))
+            reward_loss = F.mse_loss(predicted_reward, rewards[:-1], reduction='none')
+
+        observation_loss = observation_loss.sum(dim=2 if config.args.symbolic_env else (2, 3, 4))
+        new_priorities += reward_loss + observation_loss
+
+        reward_loss = (priorities * reward_loss).mean(dim=(0, 1))
+        observation_loss = (priorities * observation_loss).mean(dim=(0, 1))
 
         # transition loss
         div = kl_divergence(Normal(transition_output.posterior_means, transition_output.posterior_std_devs),
@@ -64,10 +70,9 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
 
         # Note that normalisation by overshooting distance and weighting by overshooting distance cancel out
         if config.args.global_kl_beta != 0:
-            kl_loss += config.global_kl_beta * kl_divergence(Normal(transition_output.posterior_means,
-                                                                    transition_output.posterior_std_devs),
-                                                             global_prior).sum(dim=2).mean(dim=(0, 1))
-
+            kl_loss += config.global_kl_beta * (priorities * kl_divergence(Normal(transition_output.posterior_means,
+                                                                                  transition_output.posterior_std_devs),
+                                                                           global_prior).sum(dim=2)).mean(dim=(0, 1))
         dynamics_loss = observation_loss + reward_loss + kl_loss
 
         # discount loss
@@ -76,7 +81,8 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
             pcont_pred = bottle(model.pcont, (transition_output.beliefs, transition_output.posterior_states))
             pcont_dist = Bernoulli(probs=pcont_pred)
             pcont_target = config.args.discount * non_terminals[:-1].squeeze(-1)
-            pcont_loss = - pcont_dist.log_prob(pcont_target).mean(dim=(0, 1))
+            new_priorities += -pcont_dist.log_prob(pcont_target)
+            pcont_loss = (priorities * -pcont_dist.log_prob(pcont_target)).mean(dim=(0, 1))
             pcont_loss *= config.args.pcont_scale
 
         # Update dynamics parameters
@@ -93,9 +99,33 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
             torch.nn.utils.clip_grad_norm_(model.pcont.parameters(), config.args.grad_clip_norm, norm_type=2)
         dynamics_optimizer.step()
 
-        # ##################
-        # Policy Learning
-        # ##################
+        # store for logging
+        losses['obs'] += observation_loss.item()
+        losses['reward'] += reward_loss.item()
+        losses['kl'] += kl_loss.item()
+        losses['pcont'] += pcont_loss.item()
+
+        # log distribution
+        count_tracker['updates'] += 1
+        data_distribution['terminal'] += (1 - non_terminals).flatten().data.cpu().numpy().tolist()
+
+        # update priorities
+        D.update_priorities(idxs, new_priorities.mean(dim=0).data.cpu().numpy())
+
+    # ##################
+    # Policy Learning
+    # ##################
+    for update_step in range(config.args.collect_interval):
+        # Transitions start at time t = 0
+        observations, actions, rewards, non_terminals, absorbing_states, _, _ = D.sample(config.args.batch_size,
+                                                                                         use_priority=False)
+
+        init_belief = model.init_belief(config.args.batch_size).to(config.args.device)
+        init_state = model.init_state(config.args.batch_size).to(config.args.device)
+
+        transition_output = model.transition(init_state, actions[:-1], init_belief,
+                                             bottle(model.encoder, (observations[1:],)),
+                                             non_terminals[:-1])
 
         with torch.no_grad():
             actor_states = transition_output.posterior_states.detach()
@@ -115,6 +145,8 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
 
         returns = lambda_return(imged_reward, value_pred, pcont_pred, bootstrap=value_pred[-1],
                                 lambda_=config.args.disclam)
+        if config.args.enforce_absorbing_state:
+            returns[:, absorbing_states[:-1].flatten() == 1] = 0
         policy_loss = -torch.mean(returns)
 
         # Update policy parameters
@@ -144,14 +176,6 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
         # store for logging
         losses['actor'] += policy_loss.item()
         losses['value'] += value_loss.item()
-        losses['obs'] += observation_loss.item()
-        losses['reward'] += reward_loss.item()
-        losses['kl'] += kl_loss.item()
-        losses['pcont'] += pcont_loss.item()
-
-        # log distribution
-        count_tracker['updates'] += 1
-        data_distribution['terminal'] += (1 - non_terminals).flatten().data.cpu().numpy().tolist()
 
     losses = {k: v / config.args.collect_interval for k, v in losses.items()}
 
