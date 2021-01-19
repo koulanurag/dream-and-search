@@ -113,7 +113,7 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
         data_distribution['terminal'] += (1 - non_terminals).flatten().data.cpu().numpy().tolist()
 
         # update priorities
-        D.update_priorities(idxs, new_priorities.mean(dim=0).cpu().data.numpy())
+        D.update_priorities(idxs.cpu().data.numpy(), new_priorities.mean(dim=0).cpu().data.numpy())
 
     # ##################
     # Policy Learning
