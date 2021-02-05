@@ -28,6 +28,8 @@ if __name__ == '__main__':
                         help="Directory Path to store results (default: %(default)s)")
     parser.add_argument('--wandb-dir', type=Path, default=os.path.join(os.getcwd(), 'wandb'),
                         help="Directory Path to store results (default: %(default)s)")
+    parser.add_argument('--d4rl-dataset-dir', type=Path, default=os.path.join(os.getcwd(), 'd4rl'),
+                        help="Directory Path to store results (default: %(default)s)")
     parser.add_argument('--opr', required=True, choices=['train', 'test'], help='operation to be performed')
     parser.add_argument('--symbolic-env', action='store_true', help='Symbolic features')
     parser.add_argument('--max-episode-length', type=int, default=1000, metavar='T', help='Max episode length')
