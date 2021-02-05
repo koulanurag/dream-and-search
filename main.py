@@ -112,6 +112,8 @@ if __name__ == '__main__':
     # import corresponding configuration , neural networks and envs
     if args.case == 'classic_control':
         from config.classic_control import run_config
+    if args.case == 'd4rl':
+        from config.d4rl import run_config
     elif args.case == 'box2d':
         from config.box2d import run_config
     elif args.case == 'cassie':
