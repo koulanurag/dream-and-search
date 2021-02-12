@@ -30,7 +30,7 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
     # ##################
     # Dynamics learning
     # ##################
-    beta_start = 0.4
+    beta_start = 0.0
     beta_frames = 10000
     beta_by_frame = lambda frame_idx: min(1.0, beta_start + frame_idx * (1.0 - beta_start) / beta_frames)
     for update_step in range(config.args.collect_interval):
@@ -63,8 +63,8 @@ def update_params(config, model, optimizers, D, free_nats, global_prior, writer,
         observation_loss = observation_loss.sum(dim=2 if config.args.symbolic_env else (2, 3, 4))
         new_priorities += reward_loss + observation_loss
 
-        reward_loss = (priorities * reward_loss).mean(dim=(0, 1))
-        observation_loss = (priorities * observation_loss).mean(dim=(0, 1))
+        reward_loss = (priorities * config.args.reward_loss_coeff * reward_loss).mean(dim=(0, 1))
+        observation_loss = (priorities * config.args.obs_loss_coeff * observation_loss).mean(dim=(0, 1))
 
         # transition loss
         div = kl_divergence(Normal(transition_output.posterior_means, transition_output.posterior_std_devs),
@@ -242,7 +242,7 @@ def train(config: BaseConfig, writer: SummaryWriter):
     # create memory
     D = ExperienceReplay(config.args.experience_size, config.args.symbolic_env, env.observation_size,
                          env.action_size, config.args.bit_depth, config.args.device,
-                         config.args.enforce_absorbing_state, config.args.chunk_size)
+                         config.args.enforce_absorbing_state, config.args.chunk_size, prob_alpha=0.0)
 
     # create networks
     model = config.get_uniform_network().to(config.args.device)

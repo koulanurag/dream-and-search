@@ -20,8 +20,7 @@ class D4RLConfig(BaseConfig):
         import os
         os.environ['D4RL_SUPPRESS_IMPORT_ERROR'] = '1'
         os.environ['D4RL_DATASET_DIR'] = str(self.args.d4rl_dataset_dir)
-        import d4rl
-        env = GymEnv(self.args.env, self.args.symbolic_env, seed, self.args.max_episode_length,
+        env = GymEnv('d4rl:' + self.args.env, self.args.symbolic_env, seed, self.args.max_episode_length,
                      ACTION_REPEAT[self.args.env], self.args.bit_depth)
         return env
 
