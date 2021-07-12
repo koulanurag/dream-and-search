@@ -1,5 +1,16 @@
 ## dream-and-search
-Code for "Dream and Search to Control: Latent Space Planning for Continuous Control".
+Code for ["Dream and Search to Control: Latent Space Planning for Continuous Control"](https://arxiv.org/abs/2010.09832), published in [Deep RL Workshop, NeurIPS 2020](https://sites.google.com/view/deep-rl-workshop-neurips2020/home)
+
+
+If you would like to cite it, please use following:
+```
+@article{koul2020dream,
+  title={Dream and Search to Control: Latent Space Planning for Continuous Control},
+  author={Koul, Anurag and Kumar, Varun V and Fern, Alan and Majumdar, Somdeb},
+  journal={arXiv preprint arXiv:2010.09832},
+  year={2020}
+}
+```
 
 ## Installation
 1. Install [pytorch (1.6)](https://pytorch.org/)
